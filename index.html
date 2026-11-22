@@ -99,6 +99,8 @@ header .band{position:relative}
 .loading main,.loading nav,.loading #acct,.loading #login{visibility:hidden}
 .gate main,.gate nav,.gate #acct,.gate .fab{display:none!important}
 .gate .modal{position:static;background:none;padding:clamp(24px,6vw,64px) 16px;place-items:start center}
+.chips.sub{margin:4px 0 10px}.chips.sub .chip{min-height:36px;padding:4px 12px;font-size:14px}
+.gh{font-size:14px;color:var(--mute);margin:14px 0 2px;font-weight:600}
 [hidden]{display:none!important}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
@@ -189,7 +191,7 @@ header .band{position:relative}
 <script>
 {
 const QX=/*QDATA*/[];
-let user=null,rows=[],edit=null; // ข้อมูลจาก Supabase
+let user=null,rows=[],edit=null,lecSub={}; // lecSub = หมวดย่อยที่เลือกในแต่ละวอร์ด // ข้อมูลจาก Supabase
 const WARDS=["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency"];
 const SUBS=[...new Set(QX.map(q=>q.s))];
 const DECKS=SUBS.map(s=>({ward:"Surgery",title:s,items:QX.filter(q=>q.s===s)}));
@@ -345,6 +347,9 @@ const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY):null;
 const DOMAIN="medmed-p.github.io";
 const toEmail=u=>u.trim().toLowerCase()+"@"+DOMAIN;
 const uname=u=>(u.email||"").split("@")[0];
+// หมวดย่อยประจำแต่ละวอร์ด (เพิ่ม/แก้ได้ตรงนี้)
+const SUBCAT={Surgery:["CVT","Neuro","Plastic","Ped","Gen","Uro"]};
+const subsOf=(kind,ward)=>{const pre=kind==="lecture"?SUBCAT[ward]||[]:[];const extra=rows.filter(r=>r.kind===kind&&(r.ward||"")===(ward||"")&&r.sub&&!pre.includes(r.sub)).map(r=>r.sub);return[...pre,...new Set(extra)]};
 const safeUrl=u=>/^https?:\/\//.test(u||"")?u:"#";
 
 function renderAcct(){document.body.classList.remove("loading");document.body.classList.toggle("gate",!user);$("#login").hidden=!!user;$("#lgX").hidden=true;
@@ -352,7 +357,8 @@ $("#acct").innerHTML=user?`<span>${esc(uname(user))}</span><button class="sm" id
 function linkForm(kind,ward,r){return`<form class="lform" data-kind="${kind}" data-id="${r?r.id:"new"}"><div class="grid2">
 <div><label>ชื่อ</label><input name="title" required value="${esc(r?r.title:"")}" placeholder="เช่น Acute abdomen"></div>
 <div><label>ลิงก์</label><input name="url" type="url" required value="${esc(r?r.url:"")}" placeholder="https://drive.google.com/..."></div>
-<div><label>วอร์ด</label><select name="ward"><option value="">ทั่วไป</option>${WARDS.map(w=>`<option ${w===(r?r.ward:ward)?"selected":""}>${esc(w)}</option>`).join("")}</select></div>
+${kind==="lecture"?`<div><label>หมวดย่อย (ไม่ใส่ก็ได้)</label><input name="sub" list="dl-sub" value="${esc(r?r.sub||"":(lecSub[kind+(ward||"")]&&lecSub[kind+(ward||"")]!=="*"?lecSub[kind+(ward||"")]:""))}" placeholder="เช่น CVT, Neuro, Plastic"><datalist id="dl-sub">${subsOf(kind,r?r.ward:ward).map(x=>`<option value="${esc(x)}">`).join("")}</datalist></div>
+<div><label>วอร์ด</label><select name="ward"><option value="">ทั่วไป</option>${WARDS.map(w=>`<option ${w===(r?r.ward:ward)?"selected":""}>${esc(w)}</option>`).join("")}</select></div>`:""}
 </div><div class="row" style="margin-top:10px"><button class="pri sm">บันทึก</button><button type="button" class="sm" data-lcancel>ยกเลิก</button></div></form>`}
 function linkRow(r){if(edit&&edit.id===r.id)return linkForm(r.kind,r.ward,r);
 return`<div class="lrow"><a class="lec" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title)}</a>${user?`<button class="sm" data-led="${r.id}">แก้</button><button class="sm" data-ldel="${r.id}">ลบ</button>`:""}</div>`}
@@ -360,10 +366,18 @@ function linkBlock(kind,title,list,ward){
 const head=`<div class="row" style="justify-content:space-between"><h3>${esc(title)}</h3>${user?`<button class="sm pri" data-ladd="${kind}">+ เพิ่มลิงก์</button>`:""}</div>`;
 if(!user)return head+`<p class="mute">เข้าสู่ระบบเพื่อดูและเพิ่มลิงก์</p><button class="sm" data-login>เข้าสู่ระบบ</button>`;
 const add=edit&&edit.id==="new"&&edit.kind===kind?linkForm(kind,ward,null):"";
-return head+add+(list.length?list.map(linkRow).join(""):`<p class="mute">ยังไม่มีลิงก์ กด “+ เพิ่มลิงก์”</p>`)}
+const subs=subsOf(kind,ward),cur=lecSub[kind+ward]||"*";
+if(!list.length&&!subs.length)return head+add+`<p class="mute">ยังไม่มีลิงก์ กด “+ เพิ่มลิงก์”</p>`;
+const chips=subs.length?`<div class="chips sub">${[["*","ทั้งหมด"],...subs.map(x=>[x,x])].map(([v,l])=>`<button class="chip ${v===cur?"on":""}" data-sub="${esc(v)}" data-subk="${esc(kind+ward)}">${esc(l)}</button>`).join("")}</div>`:"";
+let body;
+if(cur!=="*")body=list.filter(r=>r.sub===cur).map(linkRow).join("")||`<p class="mute">ไม่มีลิงก์ในหมวดนี้</p>`;
+else if(!list.length)body=`<p class="mute">ยังไม่มีลิงก์ กด “+ เพิ่มลิงก์”</p>`;
+else{const groups=[...subs,""].map(g=>[g,list.filter(r=>(r.sub||"")===g)]).filter(([,l])=>l.length);
+body=groups.map(([g,l])=>(subs.length?`<h4 class="gh">${esc(g||"อื่นๆ")}</h4>`:"")+l.map(linkRow).join("")).join("")}
+return head+chips+add+body}
 function renderLec(){if(!$("#lec"))return;$("#lec").innerHTML=linkBlock("lecture","ไฟล์ lecture "+st.ward,rows.filter(r=>r.kind==="lecture"&&r.ward===st.ward),st.ward)}
-function renderSen(){const list=rows.filter(r=>r.kind==="senior").sort((a,b)=>(a.ward||"").localeCompare(b.ward||""));
-$("#sen").innerHTML=linkBlock("senior","ลิงก์ทั้งหมด",list,"")}
+function renderSen(){const list=rows.filter(r=>r.kind==="senior");
+$("#sen").innerHTML=linkBlock("senior","ลิงก์สรุปรุ่นพี่",list.map(r=>({...r,sub:null})),"")}
 function renderAll(){renderLec();renderSen()}
 async function loadLinks(){if(!sb||!user){rows=[];renderAll();return}
 const {data,error}=await sb.from("links").select("*").order("created_at");
@@ -373,14 +387,15 @@ document.addEventListener("click",async e=>{const b=e.target.closest("button");i
 if(b.id==="openLogin"||"login" in d){$("#login").hidden=false;$("#lgE").focus()}
 if(b.id==="lgX")$("#login").hidden=true;
 if(b.id==="logout")await sb.auth.signOut();
+if(d.sub!==undefined&&d.subk!==undefined){lecSub[d.subk]=d.sub;renderAll();return}
 if(d.ladd){edit={kind:d.ladd,id:"new"};renderAll()}
 if(d.led){edit={id:d.led};renderAll()}
 if("lcancel" in d){edit=null;renderAll()}
 if(d.ldel){if(b.textContent!=="ยืนยันลบ"){b.textContent="ยืนยันลบ";return}
 const {error}=await sb.from("links").delete().eq("id",d.ldel);if(error)alertMsg(error);else loadLinks()}});
 document.addEventListener("submit",async e=>{const f=e.target.closest(".lform");if(!f)return;e.preventDefault();
-const el=f.elements,v={title:el["title"].value.trim(),url:el["url"].value.trim(),ward:el["ward"].value||null,kind:f.dataset.kind};
-const q=f.dataset.id==="new"?sb.from("links").insert(v):sb.from("links").update({title:v.title,url:v.url,ward:v.ward}).eq("id",f.dataset.id);
+const el=f.elements,v={title:el["title"].value.trim(),url:el["url"].value.trim(),ward:el["ward"]?el["ward"].value||null:null,sub:el["sub"]?el["sub"].value.trim()||null:null,kind:f.dataset.kind};
+const q=f.dataset.id==="new"?sb.from("links").insert(v):sb.from("links").update({title:v.title,url:v.url,ward:v.ward,sub:v.sub}).eq("id",f.dataset.id);
 const {error}=await q;if(error){alertMsg(error);return}edit=null;loadLinks()});
 function alertMsg(err){say("ผิดพลาด: "+err.message);console.error(err)}
 
