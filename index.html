@@ -403,7 +403,7 @@ else if(!list.length)body=`<p class="mute">ยังไม่มีลิงก�
 else{const groups=[...subs,""].map(g=>[g,list.filter(r=>(r.sub||"")===g)]).filter(([,l])=>l.length);
 body=groups.map(([g,l])=>(subs.length?`<h4 class="gh">${esc(g||"อื่นๆ")}</h4>`:"")+l.map(linkRow).join("")).join("")}
 return head+chips+add+body}
-function renderLec(){if(!$("#lec"))return;$("#lec").innerHTML=linkBlock("lecture","ไฟล์ lecture "+st.ward,rows.filter(r=>r.kind==="lecture"&&r.ward===st.ward),st.ward)}
+function renderLec(){if(!$("#lec"))return;$("#lec").innerHTML=linkBlock("lecture","Lecture "+st.ward,rows.filter(r=>r.kind==="lecture"&&r.ward===st.ward),st.ward)}
 function renderSen(){const list=rows.filter(r=>r.kind==="senior");
 $("#sen").innerHTML=linkBlock("senior","ลิงก์สรุปรุ่นพี่",list.map(r=>({...r,sub:null})),"")}
 function renderAll(){renderLec();renderSen()}
