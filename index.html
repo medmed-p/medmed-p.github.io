@@ -120,6 +120,9 @@ header .band{position:relative}
 .filebtn{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border-radius:10px;background:var(--blue);color:var(--blueInk);font-size:16px;cursor:pointer}
 .filebtn:focus-within{outline:3px solid var(--acc);outline-offset:2px}
 .mv{display:flex;flex-direction:column;gap:2px;margin-inline-end:4px}.mv button{min-height:22px;padding:0 8px;font-size:11px;line-height:1}
+.lab{display:flex;gap:12px;align-items:center}.lab .chips{margin:6px 0;flex:1}
+.rl{flex:none;width:3.6em;font-size:14px;font-weight:600;color:var(--mute)}
+@media(max-width:600px){.lab{flex-direction:column;align-items:stretch;gap:0}.lab .rl{margin-top:6px}}
 [hidden]{display:none!important}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
@@ -139,15 +142,15 @@ header .band{position:relative}
 </section>
 
 <section id="v-quiz" class="band" hidden>
-<div class="chips wardchips"></div>
-<div class="chips" id="decks"></div>
-<div class="chips" id="modes">
+<div class="lab"><span class="rl">Ward</span><div class="chips wardchips"></div></div>
+<div class="lab" id="decksRow"><span class="rl" id="deckLbl">Sub</span><div class="chips" id="decks"></div></div>
+<div class="lab" id="modesRow"><span class="rl">Mode</span><div class="chips" id="modes">
 <button class="chip" data-m="flash">Flashcard</button>
 <button class="chip" data-m="mcq">MCQ</button>
 <button class="chip" data-m="match">จับคู่</button>
 <button class="chip" data-f="rand">สุ่มลำดับ</button>
 <button class="chip" data-f="wrong">เฉพาะข้อที่เคยผิด</button>
-</div>
+</div></div>
 <div class="card" id="stage"></div>
 <details class="card" id="qzBox"><summary><b>จัดการชุดข้อสอบ</b> <span class="mute" id="qzCount"></span></summary>
 <div class="row" style="margin-top:10px"><label class="filebtn">นำเข้าไฟล์ข้อสอบ (.json)<input type="file" id="qzFile" accept=".json,application/json" hidden></label></div>
@@ -158,14 +161,7 @@ header .band{position:relative}
 <section id="v-log" class="band" hidden>
 <h2>Case record</h2><button class="fab" id="addBtn" aria-label="เพิ่มเคส">+</button>
 <div id="migrate"></div>
-<details class="card" id="sheetBox"><summary><b>เชื่อม Google Sheet</b> <span class="mute" id="sheetState"></span></summary>
-<div class="grid2" style="margin-top:10px">
-<div><label for="shUrl">ลิงก์ Apps Script (Web app URL)</label><input id="shUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec"></div>
-<div><label for="shKey">รหัสลับ (ต้องตรงกับในโค้ด Apps Script)</label><input id="shKey" autocomplete="off"></div></div>
-<div class="row" style="margin-top:10px"><button type="button" class="pri" id="shSave">บันทึก</button><button type="button" id="shAll">ส่งเคสทั้งหมดไป Sheet</button></div></details>
 
-<details class="card" id="rotBox"><summary><b>ตั้งวันที่ปฏิบัติของแต่ละวอร์ด</b> <span class="mute">ตั้งครั้งเดียว เลือกวอร์ดในฟอร์มแล้ววันที่ขึ้นเอง</span></summary>
-<div id="rotRows"></div><div class="row" style="margin-top:10px"><button type="button" class="pri" id="rotSave">บันทึกตาราง</button></div></details>
 <form id="f" class="card" hidden>
 <h3 id="fTitle" style="margin-bottom:14px">เพิ่มเคส</h3>
 <fieldset><legend>Rotation <span class="mute">(จำค่าล่าสุดไว้ให้)</span></legend><div class="grid2">
@@ -203,6 +199,15 @@ header .band{position:relative}
 <div id="list"></div>
 <div class="row" style="margin-top:16px"><button id="csv">คัดลอกเป็น CSV (Excel/Sheets)</button><button id="bak">คัดลอกสำรอง</button><button id="imp">นำเข้าข้อมูลสำรอง</button><span class="mute" id="msg" role="status"></span></div>
 <textarea id="impBox" rows="4" hidden placeholder="วางข้อมูลสำรอง แล้วกดนำเข้าอีกครั้ง"></textarea>
+<details class="card" id="sheetBox"><summary><b>เชื่อม Google Sheet</b> <span class="mute" id="sheetState"></span></summary>
+<div class="grid2" style="margin-top:10px">
+<div><label for="shUrl">ลิงก์ Apps Script (Web app URL)</label><input id="shUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec"></div>
+<div><label for="shKey">รหัสลับ (ต้องตรงกับในโค้ด Apps Script)</label><input id="shKey" autocomplete="off"></div></div>
+<div class="row" style="margin-top:10px"><button type="button" class="pri" id="shSave">บันทึก</button><button type="button" id="shAll">ส่งเคสทั้งหมดไป Sheet</button></div></details>
+
+<details class="card" id="rotBox"><summary><b>ตั้งวันที่ปฏิบัติของแต่ละวอร์ด</b> <span class="mute">ตั้งครั้งเดียว เลือกวอร์ดในฟอร์มแล้ววันที่ขึ้นเอง</span></summary>
+<div class="chips" id="rotYears"></div>
+<div id="rotRows"></div><div class="row" style="margin-top:10px"><button type="button" class="pri" id="rotSave">บันทึกตาราง</button></div></details>
 </section>
 
 <section id="v-links" class="band" hidden>
@@ -216,7 +221,7 @@ header .band{position:relative}
 <h3>เข้าสู่ระบบ MedMed</h3>
 <div style="margin-top:12px"><label for="lgE">Username (a-z, 0-9, . _ - ยาว 3–20 ตัว)</label><input id="lgE" name="username" required autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-zA-Z0-9._-]{3,20}"></div>
 <div style="margin-top:12px"><label for="lgP">รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input id="lgP" name="password" type="password" required minlength="6" autocomplete="current-password"></div>
-<p class="mute">คุณยังไม่มีบัญชี</p>
+<p class="mute">ยังไม่มีบัญชี ติดต่อ admin เพื่อขอ username และรหัสผ่าน</p>
 <p class="mute" id="lgMsg" role="status"></p>
 <div class="row"><button class="pri" type="submit">เข้าสู่ระบบ</button><button type="button" id="lgUp" hidden>สมัครสมาชิก</button><button type="button" id="lgX">ปิด</button></div>
 </form></div>
@@ -265,7 +270,7 @@ const dl=deckList();if(dl.length&&!dl.some(d=>d.n===st.deck))st.deck=dl[0].n;
 $("#decks").innerHTML=dl.map(d=>`<button class="chip ${d.n===st.deck?"on":""}" data-d="${d.n}">${esc(d.title)} <small>${d.items.length}</small></button>`).join("");
 $$("#modes [data-m]").forEach(b=>b.classList.toggle("on",b.dataset.m===st.mode));
 $("#modes [data-f=rand]").classList.toggle("on",st.rand);$("#modes [data-f=wrong]").classList.toggle("on",st.wrongOnly);
-$("#modes").hidden=!dl.length;save("st3",st);renderLec()}
+$("#modesRow").hidden=$("#decksRow").hidden=!dl.length;$("#deckLbl").textContent=st.ward==="Surgery"?"Sub":"Set";save("st3",st);renderLec()}
 function reset(){i=0;flipped=false;score=0;answered=false;sel=null;
 if(!deckList().length){renderStage();return}
 let it=deck().items;if(st.mode==="mcq")it=it.filter(q=>q.o);if(st.wrongOnly)it=it.filter(q=>wrong[key(q)]);
@@ -321,7 +326,7 @@ const F=[["subj","รายวิชา",1],["rStart","วันที่เร�
 const LISTS=["subj","site","setting","group","cat","cx","dx","icd","adv"];
 $("#ward").innerHTML=WARDS.map(w=>`<option>${esc(w)}</option>`).join("");
 $("#qWard").innerHTML=`<option value="">ทุกวอร์ด</option>`+WARDS.map(w=>`<option>${esc(w)}</option>`).join("");
-let cases=[],SET={rotW:{},rot:{}},editId=null,openSmart=null; // SET = การตั้งค่าส่วนตัว (ตาราง settings)
+let cases=[],SET={rotW:{},rotY:{"Year 5":{},"Year 6":{}},year:"Year 5",rot:{}},editId=null,openSmart=null; // SET = การตั้งค่าส่วนตัว (ตาราง settings)
 const th=d=>{if(!d)return"";const[y,m,dd]=d.split("-");return`${dd}/${m}/${+y+543}`};
 // วันที่: เก็บในระบบเป็น yyyy-mm-dd แต่แสดงและพิมพ์เป็น dd/mm/yyyy (พิมพ์ปี พ.ศ. ก็ได้)
 const dmy=d=>{if(!d)return"";const[y,m,dd]=d.split("-");return`${dd}/${m}/${y}`};
@@ -345,6 +350,8 @@ const [a,b]=await Promise.all([sb.from("cases").select("id,data").order("created
 if(a.error){say("โหลดเคสไม่ได้: "+a.error.message);return}
 cases=a.data.map(r=>({...r.data,id:r.id}));
 SET={rotW:{},rot:{},...(b.data?b.data.data:{})};
+if(!SET.rotY)SET.rotY={"Year 5":SET.rotW||{},"Year 6":{}}; // ตารางเดิมย้ายเป็นของ Year 5
+YEARS.forEach(y=>{SET.rotY[y]=SET.rotY[y]||{}});if(!YEARS.includes(SET.year))SET.year="Year 5";
 renderRot();renderSheet();renderMigrate();renderLog()}
 async function saveCase(c){const {id,...data}=c;
 const res=id?await sb.from("cases").update({data,updated_at:new Date().toISOString()}).eq("id",id).select("id").single()
@@ -374,7 +381,7 @@ if(b.id==="migNo"){save("migrated",true);renderMigrate();return}
 b.disabled=true;const old=load("cases2",[]);
 const {error}=await sb.from("cases").insert(old.map(({id,...data})=>({data})));
 if(error){say("ย้ายไม่สำเร็จ: "+error.message);b.disabled=false;return}
-const rw=load("rotW",null);if(rw&&!Object.keys(SET.rotW).length){SET.rotW=rw;await saveSet()}
+const rw=load("rotW",null);if(rw&&!Object.keys(rotNow()).length){SET.rotY[SET.year]=rw;await saveSet()}
 save("migrated",true);await loadCases();sheetSync("replace",cases);say("ย้ายเคสขึ้นระบบแล้ว")});
 
 // ===== ฟอร์มเพิ่ม/แก้เคส =====
@@ -387,11 +394,17 @@ if(!c){const n=new Date(),today=`${n.getFullYear()}-${String(n.getMonth()+1).pad
 $("#fTitle").textContent=c?"แก้ไขเคส":"เพิ่มเคส";$("#fSave").textContent=c?"บันทึกการแก้ไข":"บันทึกเคส";
 $("#f").scrollIntoView({behavior:"smooth",block:"start"})}
 // เลือกวอร์ดแล้วเติมรายวิชา สถานที่ และวันที่ปฏิบัติของวอร์ดนั้นให้อัตโนมัติ
-function fillRot(){const r=SET.rotW[$("#ward").value]||{};["subj","site","rStart","rEnd"].forEach(k=>{$("#"+k).value=k[0]==="r"?dmy(r[k]):r[k]||""})}
+// ตารางวันที่แยกตามชั้นปี (เพิ่มชั้นปีหรือแก้รายชื่อวอร์ดของแต่ละปีได้ที่ YEAR_WARDS)
+const YEARS=["Year 5","Year 6"];
+const YEAR_WARDS={"Year 5":WARDS,"Year 6":WARDS};
+const rotNow=()=>SET.rotY[SET.year]||(SET.rotY[SET.year]={});
+function fillRot(){const r=rotNow()[$("#ward").value]||{};["subj","site","rStart","rEnd"].forEach(k=>{$("#"+k).value=k[0]==="r"?dmy(r[k]):r[k]||""})}
 $("#ward").addEventListener("change",fillRot);
-function renderRot(){const rw=SET.rotW,DT='type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off"';
-$("#rotRows").innerHTML=WARDS.map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input ${DT} data-rw="${esc(w)}" data-k="rStart" value="${esc(dmy((rw[w]||{}).rStart))}"></label><label>สิ้นสุด<input ${DT} data-rw="${esc(w)}" data-k="rEnd" value="${esc(dmy((rw[w]||{}).rEnd))}"></label></div>`).join("");addPickers($("#rotRows"))}
-$("#rotSave").addEventListener("click",async()=>{$$("#rotRows input.dt").forEach(i=>{const w=i.dataset.rw;SET.rotW[w]={...SET.rotW[w],[i.dataset.k]:iso(i.value)}});await saveSet();if(!$("#f").hidden)fillRot();say("บันทึกตารางวอร์ดแล้ว")});
+function renderRot(){$("#rotYears").innerHTML=YEARS.map(y=>`<button type="button" class="chip ${y===SET.year?"on":""}" data-year="${esc(y)}">${esc(y)}</button>`).join("");
+const rw=rotNow(),DT='type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off"';
+$("#rotRows").innerHTML=(YEAR_WARDS[SET.year]||WARDS).map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input ${DT} data-rw="${esc(w)}" data-k="rStart" value="${esc(dmy((rw[w]||{}).rStart))}"></label><label>สิ้นสุด<input ${DT} data-rw="${esc(w)}" data-k="rEnd" value="${esc(dmy((rw[w]||{}).rEnd))}"></label></div>`).join("");addPickers($("#rotRows"))}
+$("#rotSave").addEventListener("click",async()=>{$$("#rotRows input.dt").forEach(i=>{const w=i.dataset.rw,r=rotNow();r[w]={...r[w],[i.dataset.k]:iso(i.value)}});await saveSet();if(!$("#f").hidden)fillRot();say("บันทึกตารางวอร์ดแล้ว")});
+$("#rotYears").addEventListener("click",async e=>{const b=e.target.closest("[data-year]");if(!b)return;SET.year=b.dataset.year;renderRot();if(!$("#f").hidden)fillRot();await saveSet()});
 renderRot();addPickers(document);
 function closeForm(){editId=null;$("#f").hidden=true}
 $("#addBtn").addEventListener("click",()=>{editId=null;openForm(null)});
@@ -402,7 +415,7 @@ F.forEach(([k,,,t])=>{const el=$("#"+k);c[k]=t==="c"?el.checked:t==="d"?iso(el.v
 btn.disabled=true;btn.textContent="กำลังบันทึก...";const ok=await saveCase(c);btn.disabled=false;
 if(!ok){btn.textContent="ลองบันทึกอีกครั้ง";return}
 cases=old?cases.map(x=>x.id===old.id?c:x):[...cases,c];
-SET.rot={ward:c.ward};SET.rotW[c.ward]={...SET.rotW[c.ward],...Object.fromEntries(["subj","site","rStart","rEnd"].filter(k=>c[k]).map(k=>[k,c[k]]))};saveSet();
+SET.rot={ward:c.ward};{const r=rotNow();r[c.ward]={...r[c.ward],...Object.fromEntries(["subj","site","rStart","rEnd"].filter(k=>c[k]).map(k=>[k,c[k]]))}};saveSet();
 closeForm();renderLog();say("บันทึกแล้ว")});
 function card(c){const m=missing(c);return`<div class="item ${c.dc?"dc":""}">
 <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div>${c.ward?`<span class="wb">${esc(c.ward)}</span>`:""}${c.bed?`<b class="bed">${esc(c.bed)}</b>`:""}
