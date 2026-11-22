@@ -240,7 +240,10 @@ return{n:it.id,s:it.sub||setTitle,t:it.topic||"",q:it.q||"",a:ans,e:it.explain||
 function buildDecks(){const m=new Map();
 quizSets.forEach(set=>(set.items||[]).forEach(it=>{const c=toCard(it,set.title);if(!c)return;const key=set.ward+"|"+c.s;
 if(!m.has(key))m.set(key,{ward:set.ward,title:c.s,items:[]});m.get(key).items.push(c)}));
-DECKS=[...m.values()]}
+// ชุด "รวม" = ทุก Sub ของวอร์ดนั้นรวมกัน (ขึ้นเป็นปุ่มแรก เมื่อวอร์ดมีมากกว่า 1 Sub)
+const list=[...m.values()],out=[];
+[...new Set(list.map(d=>d.ward))].forEach(w=>{const ds=list.filter(d=>d.ward===w);if(ds.length>1)out.push({ward:w,title:"รวม",items:ds.flatMap(d=>d.items)});out.push(...ds)});
+DECKS=out}
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
