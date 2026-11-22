@@ -152,7 +152,7 @@ header .band{position:relative}
 <button class="chip" data-f="wrong">เฉพาะข้อที่เคยผิด</button>
 </div></div>
 <div class="card" id="stage"></div>
-<details class="card" id="qzBox"><summary><b>จัดการชุดข้อสอบ</b> <span class="mute" id="qzCount"></span></summary>
+<details class="card" id="qzBox" hidden><summary><b>จัดการชุดข้อสอบ</b> <span class="mute" id="qzCount"></span></summary>
 <div class="row" style="margin-top:10px"><label class="filebtn">นำเข้าไฟล์ข้อสอบ (.json)<input type="file" id="qzFile" accept=".json,application/json" hidden></label></div>
 <div id="qzPrev"></div>
 <div id="qzList"></div></details>
@@ -230,7 +230,7 @@ header .band{position:relative}
 <script>
 {
 let quizSets=[]; // ชุดข้อสอบจาก Supabase ตาราง quiz_sets
-let user=null,rows=[],edit=null,lecSub={}; // lecSub = หมวดย่อยที่เลือกในแต่ละวอร์ด // ข้อมูลจาก Supabase
+let user=null,isAdmin=false,rows=[],edit=null,lecSub={}; // isAdmin = แก้ไขเนื้อหากลาง (lecture, ลิงก์, ข้อสอบ) ได้ // lecSub = หมวดย่อยที่เลือกในแต่ละวอร์ด // ข้อมูลจาก Supabase
 const WARDS=["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency"];
 let DECKS=[];
 // แปลงข้อสอบ 1 ข้อ (รูปแบบไฟล์นำเข้า) ให้เป็นรูปแบบที่หน้าทบทวนใช้
@@ -477,17 +477,17 @@ ${kind==="lecture"?`<div><label>หมวดย่อย (ไม่ใส่ก�
 <div><label>วอร์ด</label><select name="ward"><option value="">ทั่วไป</option>${WARDS.map(w=>`<option ${w===(r?r.ward:ward)?"selected":""}>${esc(w)}</option>`).join("")}</select></div>`:""}
 </div><div class="row" style="margin-top:10px"><button class="pri sm">บันทึก</button><button type="button" class="sm" data-lcancel>ยกเลิก</button></div></form>`}
 function linkRow(r){if(edit&&edit.id===r.id)return linkForm(r.kind,r.ward,r);
-return`<div class="lrow"><a class="lec" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title)}</a>${user?`<button class="sm" data-led="${r.id}">แก้</button><button class="sm" data-ldel="${r.id}">ลบ</button>`:""}</div>`}
+return`<div class="lrow"><a class="lec" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title)}</a>${isAdmin?`<button class="sm" data-led="${r.id}">แก้</button><button class="sm" data-ldel="${r.id}">ลบ</button>`:""}</div>`}
 function linkBlock(kind,title,list,ward){
-const head=`<div class="row" style="justify-content:space-between"><h3>${esc(title)}</h3>${user?`<button class="sm pri" data-ladd="${kind}">+ เพิ่มลิงก์</button>`:""}</div>`;
+const head=`<div class="row" style="justify-content:space-between"><h3>${esc(title)}</h3>${isAdmin?`<button class="sm pri" data-ladd="${kind}">+ เพิ่มลิงก์</button>`:""}</div>`;
 if(!user)return head+`<p class="mute">เข้าสู่ระบบเพื่อดูและเพิ่มลิงก์</p><button class="sm" data-login>เข้าสู่ระบบ</button>`;
 const add=edit&&edit.id==="new"&&edit.kind===kind?linkForm(kind,ward,null):"";
 const subs=subsOf(kind,ward),cur=lecSub[kind+ward]||"*";
-if(!list.length&&!subs.length)return head+add+`<p class="mute">ยังไม่มีลิงก์ กด “+ เพิ่มลิงก์”</p>`;
+if(!list.length&&!subs.length)return head+add+`<p class="mute">ยังไม่มีลิงก์</p>`;
 const chips=subs.length?`<div class="chips sub">${[["*","ทั้งหมด"],...subs.map(x=>[x,x])].map(([v,l])=>`<button class="chip ${v===cur?"on":""}" data-sub="${esc(v)}" data-subk="${esc(kind+ward)}">${esc(l)}</button>`).join("")}</div>`:"";
 let body;
 if(cur!=="*")body=list.filter(r=>r.sub===cur).map(linkRow).join("")||`<p class="mute">ไม่มีลิงก์ในหมวดนี้</p>`;
-else if(!list.length)body=`<p class="mute">ยังไม่มีลิงก์ กด “+ เพิ่มลิงก์”</p>`;
+else if(!list.length)body=`<p class="mute">ยังไม่มีลิงก์</p>`;
 else{const groups=[...subs,""].map(g=>[g,list.filter(r=>(r.sub||"")===g)]).filter(([,l])=>l.length);
 body=groups.map(([g,l])=>(subs.length?`<h4 class="gh">${esc(g||"อื่นๆ")}</h4>`:"")+l.map(linkRow).join("")).join("")}
 return head+chips+add+body}
@@ -559,13 +559,13 @@ const row={ward:$("#qzWard").value,title:$("#qzTitle").value.trim()||"ชุด�
 const {error}=await sb.from("quiz_sets").insert(row);
 if(error){say("นำเข้าไม่สำเร็จ: "+error.message);b.disabled=false;b.textContent="นำเข้า";return}
 qzPending=null;$("#qzPrev").innerHTML="";st.ward=row.ward;await loadQuiz();say("นำเข้า "+row.items.length+" ข้อแล้ว")}});
-function renderQuizList(){$("#qzCount").textContent=quizSets.length?quizSets.length+" ชุด":"";
+function renderQuizList(){$("#qzBox").hidden=!isAdmin;$("#qzCount").textContent=quizSets.length?quizSets.length+" ชุด":"";
 $("#qzList").innerHTML=quizSets.length?quizSets.map(q=>`<div class="lrow"><span style="flex:1;padding:10px 0"><b>${esc(q.title)}</b> <span class="mute">${esc(q.ward)} · ${(q.items||[]).length} ข้อ</span></span><button class="sm" data-qdel="${q.id}">ลบชุด</button></div>`).join(""):`<p class="mute">ยังไม่มีชุดข้อสอบ</p>`}
 $("#qzList").addEventListener("click",async e=>{const b=e.target.closest("[data-qdel]");if(!b)return;
 if(b.textContent!=="ยืนยันลบ"){b.textContent="ยืนยันลบ";return}
 const {error}=await sb.from("quiz_sets").delete().eq("id",b.dataset.qdel);if(error){say("ลบไม่สำเร็จ: "+error.message);return}loadQuiz()});
 
-if(sb)sb.auth.onAuthStateChange((ev,session)=>{user=session?session.user:null;renderAcct();setTimeout(()=>{loadLinks();loadCases();loadQuiz()},0)});
+if(sb)sb.auth.onAuthStateChange((ev,session)=>{user=session?session.user:null;renderAcct();setTimeout(async()=>{isAdmin=false;if(user){const r=await sb.rpc("is_admin");isAdmin=r.data===true}renderQuizList();loadLinks();loadCases();loadQuiz()},0)});
 else{document.body.classList.remove("loading");$("#lgMsg").textContent="เชื่อมต่อระบบไม่ได้ ลองรีเฟรชหรือเช็กอินเทอร์เน็ต";$("#login").hidden=false}
 renderAll();
 }
