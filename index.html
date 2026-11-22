@@ -142,30 +142,30 @@ header .band{position:relative}
 <h3 id="fTitle" style="margin-bottom:14px">เพิ่มเคส</h3>
 <fieldset><legend>Rotation <span class="mute">(จำค่าล่าสุดไว้ให้)</span></legend><div class="grid2">
 <div><label for="ward">วอร์ด</label><select id="ward"></select></div>
-<div><label for="subj">รายวิชา <i>*</i></label><input id="subj" list="dl-subj" placeholder="เช่น ศศ511::ศัลยศาสตร์ปฏิบัติการทางคลินิก 2"></div>
-<div><label for="site">สถานปฏิบัติงาน <i>*</i></label><input id="site" list="dl-site" placeholder="เช่น องครักษ์"></div>
-<div><label for="rStart">วันที่เริ่มปฏิบัติ</label><input id="rStart" type="date"></div>
-<div><label for="rEnd">วันที่สิ้นสุดปฏิบัติ</label><input id="rEnd" type="date"></div>
+<div><label for="subj">รายวิชา</label><input id="subj" list="dl-subj" placeholder="เช่น ศศ511::ศัลยศาสตร์ปฏิบัติการทางคลินิก 2"></div>
+<div><label for="site">สถานปฏิบัติงาน</label><input id="site" list="dl-site" placeholder="เช่น องครักษ์"></div>
+<div><label for="rStart">วันที่เริ่มปฏิบัติ</label><input id="rStart" type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off"></div>
+<div><label for="rEnd">วันที่สิ้นสุดปฏิบัติ</label><input id="rEnd" type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off"></div>
 </div></fieldset>
 <fieldset><legend>ผู้ป่วย</legend><div class="grid2">
 <div><label for="bed">เตียง</label><input id="bed" autocomplete="off" placeholder="เช่น 9/2-8"></div>
-<div><label for="hn">HN No. <i>*</i></label><input id="hn" inputmode="numeric" autocomplete="off"></div>
-<div><label for="ptype">ประเภทผู้ป่วย <i>*</i></label><select id="ptype"><option>ผู้ป่วยใน</option><option>ผู้ป่วยนอก</option></select></div>
-<div><label for="cStart">วันที่เริ่มดูแล</label><input id="cStart" type="date"></div>
-<div><label for="cEnd">วันที่สิ้นสุดการดูแล</label><input id="cEnd" type="date"></div>
+<div><label for="hn">HN No.</label><input id="hn" inputmode="numeric" autocomplete="off"></div>
+<div><label for="ptype">ประเภทผู้ป่วย</label><select id="ptype"><option>ผู้ป่วยใน</option><option>ผู้ป่วยนอก</option></select></div>
+<div><label for="cStart">วันที่เริ่มดูแล</label><input id="cStart" type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off"></div>
+<div><label for="cEnd">วันที่สิ้นสุดการดูแล</label><input id="cEnd" type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off"></div>
 <div><label for="setting">Clinical setting</label><input id="setting" list="dl-setting"></div>
-<div><label for="group">กลุ่มโรค <i>*</i></label><input id="group" list="dl-group" placeholder="เช่น Disorders of nervous system"></div>
+<div><label for="group">กลุ่มโรค</label><input id="group" list="dl-group" placeholder="เช่น Disorders of nervous system"></div>
 <div><label for="cat">Category</label><input id="cat" list="dl-cat"></div>
 <div><label for="cx">Complexity of case</label><input id="cx" list="dl-cx"></div>
-<div><label for="dx">การวินิจฉัย <i>*</i></label><input id="dx" list="dl-dx"></div>
-<div><label for="icd">ICD-10 <i>*</i></label><input id="icd" list="dl-icd" autocapitalize="characters"></div>
+<div><label for="dx">การวินิจฉัย</label><input id="dx" list="dl-dx"></div>
+<div><label for="icd">ICD-10</label><input id="icd" list="dl-icd" autocapitalize="characters"></div>
 <div><label for="adv">อาจารย์ที่ปรึกษา</label><input id="adv" list="dl-adv"></div>
 </div>
-<div style="margin-top:12px"><label for="detail">รายละเอียด/ข้อมูล <i>*</i></label><textarea id="detail" rows="4"></textarea></div>
+<div style="margin-top:12px"><label for="detail">รายละเอียด/ข้อมูล</label><textarea id="detail" rows="4"></textarea></div>
 <label class="ck"><input type="checkbox" id="logbook" checked> เก็บ log book</label>
 <label class="ck"><input type="checkbox" id="epa"> ต้องการรับการประเมิน EPA จากอาจารย์</label>
 </fieldset>
-<p class="mute">ช่องที่มี * คือช่องบังคับของ SMART ถ้ายังไม่ครบก็บันทึกไว้ก่อนได้ เคสจะขึ้นป้าย “ยังขาด”</p>
+
 <div class="row"><button class="pri" type="submit" id="fSave">บันทึกเคส</button><button type="button" id="fCancel">ยกเลิก</button></div>
 </form>
 <div id="dls"></div>
@@ -289,35 +289,39 @@ let cases=load("cases2",null);
 if(!cases){cases=load("cases",[]).map(c=>({id:c.id,cStart:c.date,hn:c.hn,dx:c.dx,detail:c.note,ptype:"ผู้ป่วยใน",logbook:true}));save("cases2",cases)}
 let editId=null,openSmart=null;
 const th=d=>{if(!d)return"";const[y,m,dd]=d.split("-");return`${dd}/${m}/${+y+543}`};
+// วันที่: เก็บในระบบเป็น yyyy-mm-dd แต่แสดงและพิมพ์เป็น dd/mm/yyyy (พิมพ์ปี พ.ศ. ก็ได้)
+const dmy=d=>{if(!d)return"";const[y,m,dd]=d.split("-");return`${dd}/${m}/${y}`};
+const iso=t=>{const m=(t||"").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(!m)return"";let[,d,mo,y]=m.map(Number);if(y>2400)y-=543;const dt=new Date(Date.UTC(y,mo-1,d));return dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d?dt.toISOString().slice(0,10):""};
+document.addEventListener("input",e=>{const el=e.target;if(!el.classList||!el.classList.contains("dt"))return;const v=el.value.replace(/\D/g,"").slice(0,8);el.value=v.length>4?v.slice(0,2)+"/"+v.slice(2,4)+"/"+v.slice(4):v.length>2?v.slice(0,2)+"/"+v.slice(2):v});
+document.addEventListener("change",e=>{const el=e.target;if(el.classList&&el.classList.contains("dt")&&el.value&&!iso(el.value)){say("วันที่ไม่ถูกต้อง ใช้รูปแบบ dd/mm/yyyy");el.value=""}});
 const val=(c,f)=>f[3]==="d"?th(c[f[0]]):f[3]==="c"?(c[f[0]]?"✓ เลือก":"ไม่เลือก"):(c[f[0]]||"");
 const missing=c=>F.filter(f=>f[2]&&!c[f[0]]).map(f=>f[1]);
 function renderLists(){$("#dls").innerHTML=LISTS.map(k=>`<datalist id="dl-${k}">${[...new Set(cases.map(c=>c[k]).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`).join("")}
 function openForm(c){$("#f").hidden=false;
 const last=load("rot",{});
 F.forEach(([k,,,t])=>{const el=$("#"+k),v=c?c[k]:(ROT.includes(k)?last[k]:undefined);
-if(t==="c")el.checked=c?!!c[k]:k==="logbook";else if(k==="ptype")el.value=v||"ผู้ป่วยใน";else el.value=v||""});
+if(t==="c")el.checked=c?!!c[k]:k==="logbook";else if(t==="d")el.value=dmy(v);else if(k==="ptype")el.value=v||"ผู้ป่วยใน";else el.value=v||""});
 $("#ward").value=(c?c.ward:last.ward)||WARDS[0];$("#bed").value=c?c.bed||"":"";if(!c)fillRot();
-if(!c){const today=new Date().toISOString().slice(0,10);$("#cStart").value=today}
+if(!c){const n=new Date(),today=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;$("#cStart").value=dmy(today)}
 $("#fTitle").textContent=c?"แก้ไขเคส":"เพิ่มเคส";$("#fSave").textContent=c?"บันทึกการแก้ไข":"บันทึกเคส";
 $("#f").scrollIntoView({behavior:"smooth",block:"start"})}
 // เลือกวอร์ดแล้วเติมรายวิชา สถานที่ และวันที่ปฏิบัติของวอร์ดนั้นให้อัตโนมัติ
-function fillRot(){const r=load("rotW",{})[$("#ward").value]||{};["subj","site","rStart","rEnd"].forEach(k=>{$("#"+k).value=r[k]||""})}
+function fillRot(){const r=load("rotW",{})[$("#ward").value]||{};["subj","site","rStart","rEnd"].forEach(k=>{$("#"+k).value=k[0]==="r"?dmy(r[k]):r[k]||""})}
 $("#ward").addEventListener("change",fillRot);
-function renderRot(){const rw=load("rotW",{});$("#rotRows").innerHTML=WARDS.map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input type="date" data-rw="${esc(w)}" data-k="rStart" value="${esc((rw[w]||{}).rStart||"")}"></label><label>สิ้นสุด<input type="date" data-rw="${esc(w)}" data-k="rEnd" value="${esc((rw[w]||{}).rEnd||"")}"></label></div>`).join("")}
-$("#rotSave").addEventListener("click",()=>{const rw=load("rotW",{});$$("#rotRows input").forEach(i=>{const w=i.dataset.rw;rw[w]={...rw[w],[i.dataset.k]:i.value}});save("rotW",rw);if(!$("#f").hidden)fillRot();say("บันทึกตารางวอร์ดแล้ว")});
+function renderRot(){const rw=load("rotW",{});$("#rotRows").innerHTML=WARDS.map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off" data-rw="${esc(w)}" data-k="rStart" value="${esc(dmy((rw[w]||{}).rStart))}"></label><label>สิ้นสุด<input type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off" data-rw="${esc(w)}" data-k="rEnd" value="${esc(dmy((rw[w]||{}).rEnd))}"></label></div>`).join("")}
+$("#rotSave").addEventListener("click",()=>{const rw=load("rotW",{});$$("#rotRows input").forEach(i=>{const w=i.dataset.rw;rw[w]={...rw[w],[i.dataset.k]:iso(i.value)}});save("rotW",rw);if(!$("#f").hidden)fillRot();say("บันทึกตารางวอร์ดแล้ว")});
 renderRot();
 function closeForm(){editId=null;$("#f").hidden=true}
 $("#addBtn").addEventListener("click",()=>{editId=null;openForm(null)});
 $("#fCancel").addEventListener("click",closeForm);
 $("#f").addEventListener("submit",e=>{e.preventDefault();
 const old=cases.find(x=>x.id===editId),c={id:editId||Date.now(),smart:old?old.smart:false};
-F.forEach(([k,,,t])=>{const el=$("#"+k);c[k]=t==="c"?el.checked:el.value.trim()});c.ward=$("#ward").value;c.bed=$("#bed").value.trim();c.dc=old?!!old.dc:false;
-if(!c.hn&&!c.dx){say("ใส่ HN หรือการวินิจฉัยอย่างน้อยหนึ่งช่อง");return}
+F.forEach(([k,,,t])=>{const el=$("#"+k);c[k]=t==="c"?el.checked:t==="d"?iso(el.value):el.value.trim()});c.ward=$("#ward").value;c.bed=$("#bed").value.trim();c.dc=old?!!old.dc:false;
 cases=old?cases.map(x=>x.id===editId?c:x):[...cases,c];save("cases2",cases);
 save("rot",{ward:c.ward});const rw=load("rotW",{});rw[c.ward]={...rw[c.ward],...Object.fromEntries(["subj","site","rStart","rEnd"].filter(k=>c[k]).map(k=>[k,c[k]]))};save("rotW",rw);closeForm();renderLog();say("บันทึกแล้ว")});
 function card(c){const m=missing(c);return`<div class="item ${c.dc?"dc":""}">
 <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div>${c.ward?`<span class="wb">${esc(c.ward)}</span>`:""}${c.bed?`<b class="bed">${esc(c.bed)}</b>`:""}
-<div class="dxl">${esc(c.dx||"ยังไม่ใส่การวินิจฉัย")}</div><div class="mute">HN ${esc(c.hn||"-")} · ${esc(c.ptype||"")} · ${esc(th(c.cStart))}${c.dc&&c.cEnd?" – "+esc(th(c.cEnd)):""}</div></div>
+<div class="dxl">${esc(c.dx||"ยังไม่ใส่การวินิจฉัย")}</div><div class="mute">HN ${esc(c.hn||"-")} · ${esc(c.ptype||"")} · ${esc(dmy(c.cStart))}${c.dc&&c.cEnd?" – "+esc(dmy(c.cEnd)):""}</div></div>
 <div class="acts"><button class="ib ed" data-e="${c.id}" aria-label="แก้ไข">แก้</button>${c.dc?`<button class="ib un" data-dc="${c.id}" aria-label="ย้ายกลับเป็น active">↺</button>`:`<button class="ib d" data-dc="${c.id}">D/C</button>`}<button class="ib lb" data-s="${c.id}" aria-label="เตรียมกรอก SMART">SMART${c.smart?"":`<i class="dot"></i>`}</button></div></div>
 <div>${c.smart?`<span class="tag g">กรอก SMART แล้ว</span>`:""}${m.length?`<span class="tag w">ยังขาด: ${esc(m.join(", "))}</span>`:""}${c.epa?`<span class="tag">ขอ EPA</span>`:""}</div>
 ${openSmart===c.id?`<div class="smart"><p class="mute" style="margin-bottom:6px">เรียงตามลำดับช่องในฟอร์ม SMART แตะ “คัดลอก” แล้ววางทีละช่อง</p>${F.map((f,n)=>`<div><span>${esc(f[1])}</span><p>${esc(val(c,f))||"—"}</p>${f[3]==="c"?"<i></i>":`<button class="sm" data-cp="${c.id}:${n}">คัดลอก</button>`}</div>`).join("")}
