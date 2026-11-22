@@ -192,7 +192,7 @@ header .band{position:relative}
 {
 const QX=/*QDATA*/[];
 let user=null,rows=[],edit=null,lecSub={}; // lecSub = หมวดย่อยที่เลือกในแต่ละวอร์ด // ข้อมูลจาก Supabase
-const WARDS=["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency"];
+const WARDS=["Sx Sub","Ortho","Rehab","Forensic","Medicine","Emergency"];
 const SUBS=[...new Set(QX.map(q=>q.s))];
 const DECKS=SUBS.map(s=>({ward:"Surgery",title:s,items:QX.filter(q=>q.s===s)}));
 
