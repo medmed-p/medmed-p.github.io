@@ -116,6 +116,9 @@ header .band{position:relative}
 .calb input{position:absolute;inset:0;width:100%;height:100%;min-height:0;opacity:0;padding:0;border:0;cursor:pointer}
 .calb input::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;cursor:pointer}
 .calb:focus-within{outline:3px solid var(--acc);outline-offset:2px}
+#qzBox summary{cursor:pointer;min-height:44px;display:flex;gap:8px;align-items:center}
+.filebtn{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border-radius:10px;background:var(--blue);color:var(--blueInk);font-size:16px;cursor:pointer}
+.filebtn:focus-within{outline:3px solid var(--acc);outline-offset:2px}
 [hidden]{display:none!important}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
@@ -141,7 +144,10 @@ header .band{position:relative}
 <button class="chip" data-f="wrong">เฉพาะข้อที่เคยผิด</button>
 </div>
 <div class="card" id="stage"></div>
-<p class="mute">คลังข้อสอบจะกลับมาหลังเชื่อม Supabase (ต้องล็อกอินก่อนถึงเห็น)</p>
+<details class="card" id="qzBox"><summary><b>จัดการชุดข้อสอบ</b> <span class="mute" id="qzCount"></span></summary>
+<div class="row" style="margin-top:10px"><label class="filebtn">นำเข้าไฟล์ข้อสอบ (.json)<input type="file" id="qzFile" accept=".json,application/json" hidden></label></div>
+<div id="qzPrev"></div>
+<div id="qzList"></div></details>
 </section>
 
 <section id="v-log" class="band" hidden>
@@ -212,11 +218,18 @@ header .band{position:relative}
 
 <script>
 {
-const QX=/*QDATA*/[];
+let quizSets=[]; // ชุดข้อสอบจาก Supabase ตาราง quiz_sets
 let user=null,rows=[],edit=null,lecSub={}; // lecSub = หมวดย่อยที่เลือกในแต่ละวอร์ด // ข้อมูลจาก Supabase
 const WARDS=["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency"];
-const SUBS=[...new Set(QX.map(q=>q.s))];
-const DECKS=SUBS.map(s=>({ward:"Surgery",title:s,items:QX.filter(q=>q.s===s)}));
+let DECKS=[];
+// แปลงข้อสอบ 1 ข้อ (รูปแบบไฟล์นำเข้า) ให้เป็นรูปแบบที่หน้าทบทวนใช้
+function toCard(it,setTitle){if(it.type!=="mcq"&&it.type!=="flash")return null;
+const ans=it.answerText!=null?it.answerText:(it.options&&typeof it.answer==="number"?it.options[it.answer]:String(it.answer??""));
+return{n:it.id,s:it.sub||setTitle,t:it.topic||"",q:it.q||"",a:ans,e:it.explain||"",o:it.type==="mcq"&&it.options?it.options:null,k:it.answer,r:it.repeat||0,w:it.note||""}}
+function buildDecks(){const m=new Map();
+quizSets.forEach(set=>(set.items||[]).forEach(it=>{const c=toCard(it,set.title);if(!c)return;const key=set.ward+"|"+c.s;
+if(!m.has(key))m.set(key,{ward:set.ward,title:c.s,items:[]});m.get(key).items.push(c)}));
+DECKS=[...m.values()]}
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -256,7 +269,7 @@ function newMatch(){const p=shuffle(order.filter(q=>q.a.length<=60&&q.q.length<=
 mt={p,l:shuffle(p.map((q,k)=>[k,q.q])),r:shuffle(p.map((q,k)=>[k,q.a])),done:[]}}
 const prog=(n,t)=>`<div class="row mute" style="justify-content:space-between"><span>${n} / ${t}</span><span>${esc(deck().title)}</span></div><div class="bar"><i style="width:${t?n/t*100:0}%"></i></div>`;
 function renderStage(){const s=$("#stage");
-if(!deckList().length){s.innerHTML=`<h3>ยังไม่มีชุดทบทวนของวอร์ด${esc(st.ward)}</h3><p class="mute">ส่ง PDF lecture ของวอร์ดนี้มาในแชท แล้วจะแปลงเป็นชุดการ์ดให้</p>`;return}
+if(!deckList().length){s.innerHTML=`<h3>ยังไม่มีชุดข้อสอบของวอร์ด ${esc(st.ward)}</h3><p class="mute">นำเข้าไฟล์ข้อสอบ (.json) ได้ที่กล่อง “จัดการชุดข้อสอบ” ด้านล่าง</p>`;return}
 if(!order.length){s.innerHTML=`<h3>${st.wrongOnly?"ยังไม่มีข้อที่เคยผิดในชุดนี้":"ไม่มีข้อในชุดนี้"}</h3>`;return}
 if(st.mode==="flash"){const q=order[i];
 s.innerHTML=`${prog(i+1,order.length)}<div class="flash ${flipped?"back":""}" id="fc" tabindex="0" role="button" aria-label="พลิกการ์ด"><div>${flipped
@@ -493,7 +506,41 @@ if(error){$("#lgMsg").textContent=error.message.includes("registered")?"Username
 if(data.session){$("#lgMsg").textContent="";$("#login").hidden=true;say("สมัครและเข้าสู่ระบบแล้ว")}
 else $("#lgMsg").textContent="สมัครแล้ว แต่ระบบยังเปิดยืนยันอีเมลอยู่ ต้องปิด Confirm email ใน Supabase ก่อน"});
 
-if(sb)sb.auth.onAuthStateChange((ev,session)=>{user=session?session.user:null;renderAcct();setTimeout(()=>{loadLinks();loadCases()},0)});
+// ---------- ชุดข้อสอบ: นำเข้าไฟล์ .json แล้วเก็บใน Supabase ตาราง quiz_sets
+async function loadQuiz(){if(!sb||!user){quizSets=[];buildDecks();renderNav();reset();return}
+const {data,error}=await sb.from("quiz_sets").select("id,ward,title,items,created_at").order("created_at");
+if(error){say("โหลดข้อสอบไม่ได้: "+error.message);return}
+quizSets=data||[];buildDecks();renderNav();reset();renderQuizList()}
+// รับได้ทั้งรูปแบบใหม่ {set, ward, items:[...]} และรูปแบบเก่า (รายการข้อที่มี n,s,t,q,a,o,k)
+function normalizeQuiz(j){const old=x=>({type:x.o?"mcq":"flash",id:x.n,sub:x.s,topic:x.t,q:x.q,options:x.o||undefined,answer:x.k,answerText:x.a,
+explain:[x.e,x.h].filter(Boolean).join("\n"),repeat:x.r,note:x.w,gen:!!x.o});
+if(Array.isArray(j))return{title:"ชุดข้อสอบ",ward:"",items:j.map(x=>x.type?x:old(x))};
+if(j&&Array.isArray(j.items))return{title:j.set||j.title||"ชุดข้อสอบ",ward:j.ward||"",items:j.items.map(x=>x.type?x:old(x))};
+throw new Error("รูปแบบไฟล์ไม่ถูกต้อง")}
+let qzPending=null;
+$("#qzFile").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+try{qzPending=normalizeQuiz(JSON.parse(await f.text()))}catch(err){say("อ่านไฟล์ไม่ได้: "+err.message);return}
+const cnt={};qzPending.items.forEach(x=>{cnt[x.type]=(cnt[x.type]||0)+1});
+const ward=WARDS.includes(qzPending.ward)?qzPending.ward:st.ward;
+$("#qzPrev").innerHTML=`<div class="lform"><b>${esc(qzPending.items.length)} ข้อ</b> <span class="mute">${esc(Object.entries(cnt).map(([k,v])=>k.toUpperCase()+" "+v).join(" · "))}</span>
+<div class="grid2" style="margin-top:8px"><div><label for="qzTitle">ชื่อชุด</label><input id="qzTitle" value="${esc(qzPending.title)}"></div>
+<div><label for="qzWard">วอร์ด</label><select id="qzWard">${WARDS.map(w=>`<option ${w===ward?"selected":""}>${esc(w)}</option>`).join("")}</select></div></div>
+<p class="mute">ตอนนี้หน้าทบทวนเล่นได้เฉพาะ MCQ และ Flashcard ข้อแบบอื่น (MEQ, Spot, OSCE) จะเก็บไว้ก่อน แล้วขึ้นเมื่อทำหน้าเล่นเสร็จ</p>
+<div class="row"><button class="pri sm" id="qzOk">นำเข้า</button><button class="sm" id="qzNo">ยกเลิก</button></div></div>`});
+$("#qzPrev").addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;
+if(b.id==="qzNo"){qzPending=null;$("#qzPrev").innerHTML="";return}
+if(b.id==="qzOk"&&qzPending){b.disabled=true;b.textContent="กำลังนำเข้า...";
+const row={ward:$("#qzWard").value,title:$("#qzTitle").value.trim()||"ชุดข้อสอบ",items:qzPending.items};
+const {error}=await sb.from("quiz_sets").insert(row);
+if(error){say("นำเข้าไม่สำเร็จ: "+error.message);b.disabled=false;b.textContent="นำเข้า";return}
+qzPending=null;$("#qzPrev").innerHTML="";st.ward=row.ward;await loadQuiz();say("นำเข้า "+row.items.length+" ข้อแล้ว")}});
+function renderQuizList(){$("#qzCount").textContent=quizSets.length?quizSets.length+" ชุด":"";
+$("#qzList").innerHTML=quizSets.length?quizSets.map(q=>`<div class="lrow"><span style="flex:1;padding:10px 0"><b>${esc(q.title)}</b> <span class="mute">${esc(q.ward)} · ${(q.items||[]).length} ข้อ</span></span><button class="sm" data-qdel="${q.id}">ลบชุด</button></div>`).join(""):`<p class="mute">ยังไม่มีชุดข้อสอบ</p>`}
+$("#qzList").addEventListener("click",async e=>{const b=e.target.closest("[data-qdel]");if(!b)return;
+if(b.textContent!=="ยืนยันลบ"){b.textContent="ยืนยันลบ";return}
+const {error}=await sb.from("quiz_sets").delete().eq("id",b.dataset.qdel);if(error){say("ลบไม่สำเร็จ: "+error.message);return}loadQuiz()});
+
+if(sb)sb.auth.onAuthStateChange((ev,session)=>{user=session?session.user:null;renderAcct();setTimeout(()=>{loadLinks();loadCases();loadQuiz()},0)});
 else{document.body.classList.remove("loading");$("#lgMsg").textContent="เชื่อมต่อระบบไม่ได้ ลองรีเฟรชหรือเช็กอินเทอร์เน็ต";$("#login").hidden=false}
 renderAll();
 }
