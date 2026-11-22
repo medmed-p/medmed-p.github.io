@@ -123,7 +123,7 @@ header .band{position:relative}
 .lab{display:flex;gap:12px;align-items:center}.lab .chips{margin:6px 0;flex:1}
 .rl{flex:none;width:3.6em;font-size:14px;font-weight:600;color:var(--mute)}
 @media(max-width:600px){.lab{flex-direction:column;align-items:stretch;gap:0}.lab .rl{margin-top:6px}}
-[hidden]{display:none!important}
+.vsep{width:1px;align-self:stretch;background:var(--line);margin:4px 6px}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
 </head>
@@ -148,6 +148,7 @@ header .band{position:relative}
 <button class="chip" data-m="flash">Flashcard</button>
 <button class="chip" data-m="mcq">MCQ</button>
 <button class="chip" data-m="match">จับคู่</button>
+<span class="vsep" aria-hidden="true"></span>
 <button class="chip" data-f="rand">สุ่มลำดับ</button>
 <button class="chip" data-f="wrong">เฉพาะข้อที่เคยผิด</button>
 </div></div>
@@ -194,7 +195,7 @@ header .band{position:relative}
 </form>
 <div id="dls"></div>
 
-<div class="row" style="margin-top:12px"><input id="q" placeholder="ค้นหา HN, การวินิจฉัย, ICD-10" style="flex:1 1 220px"><select id="qWard" style="flex:0 1 200px"></select><select id="qSmart" style="flex:0 1 180px"><option value="">ทุกสถานะ</option><option value="todo">ยังไม่กรอก SMART</option><option value="done">กรอก SMART แล้ว</option></select><select id="qSort" style="flex:0 1 180px"><option value="date">ล่าสุดก่อน</option><option value="bed">Ward → Bed</option></select></div>
+<div class="row" style="margin-top:12px"><input id="q" placeholder="ค้นหา HN, การวินิจฉัย, ICD-10" style="flex:1 1 220px"><select id="qWard" style="flex:0 1 200px"></select><select id="qSmart" style="flex:0 1 180px"><option value="">Status</option><option value="todo">ยังไม่กรอก SMART</option><option value="done">กรอก SMART แล้ว</option></select><select id="qSort" style="flex:0 1 180px"><option value="date">ล่าสุดก่อน</option><option value="bed">Ward → Bed</option></select></div>
 <div id="stats"></div>
 <div id="list"></div>
 <div class="row" style="margin-top:16px"><button id="csv">คัดลอกเป็น CSV (Excel/Sheets)</button><button id="bak">คัดลอกสำรอง</button><button id="imp">นำเข้าข้อมูลสำรอง</button><span class="mute" id="msg" role="status"></span></div>
