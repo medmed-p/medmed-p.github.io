@@ -125,6 +125,8 @@ header .band{position:relative}
 @media(max-width:600px){.lab{flex-direction:column;align-items:stretch;gap:0}.lab .rl{margin-top:6px}}
 .vsep{width:1px;align-self:stretch;background:var(--line);margin:4px 6px}
 .sortsel{width:auto;min-height:38px;padding:4px 10px;font-size:14px}
+.bkrow{display:flex;gap:8px;align-items:center;margin-top:6px}.bkrow input{flex:1}.bkrow .bksub{flex:0 1 9em}
+@media(max-width:600px){.bkrow{flex-wrap:wrap}.bkrow input:first-child{flex:1 1 100%}}.bkrow a{flex:none;font-size:14px}
 [hidden]{display:none!important}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
@@ -244,6 +246,7 @@ header .band{position:relative}
 {
 let quizSets=[]; // ชุดข้อสอบจาก Supabase ตาราง quiz_sets
 let CFG={hide:{}}; // การตั้งค่ากลางจาก admin (ตาราง app_config)
+let bulk=null; // เพิ่มหลายลิงก์ทีเดียว
 let user=null,isAdmin=false,rows=[],edit=null,lecSub={}; // isAdmin = แก้ไขเนื้อหากลาง (lecture, ลิงก์, ข้อสอบ) ได้ // lecSub = หมวดย่อยที่เลือกในแต่ละวอร์ด // ข้อมูลจาก Supabase
 const WARDS=["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency"];
 let DECKS=[];
@@ -504,11 +507,28 @@ return`<div class="lrow"><a class="lec" href="${esc(safeUrl(r.url))}" target="_b
 function lecSorter(){const by=(a,b)=>String(a.created_at).localeCompare(String(b.created_at)),nm=(a,b)=>String(a.title).localeCompare(String(b.title),"th");
 return{old:by,new:(a,b)=>by(b,a),az:nm,za:(a,b)=>nm(b,a)}[load("lecSort","old")]||by}
 document.addEventListener("change",e=>{if(e.target.id!=="lecSort")return;save("lecSort",e.target.value);renderAll()});
+// ===== เพิ่มหลายลิงก์ทีเดียว: วาง "ชื่อ [แท็บ] ลิงก์" บรรทัดละไฟล์ (คัดลอกจาก Google Sheet ได้เลย) =====
+// แต่ละบรรทัด: ชื่อ [แท็บ] ลิงก์ [แท็บ] หมวดย่อย (หมวดย่อยไม่ใส่ก็ได้)
+function parseBulk(t){return t.split(/\r?\n/).map(l=>{const url=(l.match(/https?:\/\/\S+/)||[""])[0];
+const rest=l.split("\t").map(x=>x.trim()).filter(x=>x&&!x.includes(url||"\u0000"));
+return{title:(rest[0]||"").replace(/[|,]\s*$/,"").trim(),url,sub:(rest[1]||"").trim()}}).filter(r=>r.url)}
+function bulkForm(ward){const b=bulk;
+if(b.step==="paste")return`<div class="lform"><b>เพิ่มหลายลิงก์</b>
+<div style="margin-top:8px"><label for="bkText">วางรายการ บรรทัดละไฟล์: ชื่อ, ลิงก์, หมวดย่อย (คัดลอกจาก Google Sheet มาวางได้เลย)</label><textarea id="bkText" rows="6" placeholder="Thoracic trauma	https://drive.google.com/...">${esc(b.text)}</textarea></div>
+<div class="grid2" style="margin-top:8px"><div><label for="bkSub">หมวดย่อยเริ่มต้น (บรรทัดที่ไม่ได้ระบุ)</label><input id="bkSub" list="dl-bksub" value="${esc(b.sub)}"><datalist id="dl-bksub">${subsOf("lecture",ward).map(x=>`<option value="${esc(x)}">`).join("")}</datalist></div>
+<div><label for="bkWard">วอร์ด</label><select id="bkWard">${WARDS.map(w=>`<option ${w===(b.ward||ward)?"selected":""}>${esc(w)}</option>`).join("")}</select></div></div>
+<div class="row" style="margin-top:10px"><button class="pri sm" id="bkCheck">ตรวจรายการ</button><button class="sm" id="bkCancel">ยกเลิก</button></div></div>`;
+return`<div class="lform"><b>ตรวจรายการ ${b.rows.length} ไฟล์</b> <span class="mute">${esc(b.ward)} · แก้ชื่อและหมวดย่อยได้ในช่อง</span>
+${b.rows.map((r,i)=>`<div class="bkrow"><input data-bk="${i}" value="${esc(r.title)}" placeholder="ใส่ชื่อไฟล์" aria-label="ชื่อไฟล์ที่ ${i+1}"><input class="bksub" data-bks="${i}" list="dl-bksub2" value="${esc(r.sub)}" placeholder="หมวดย่อย" aria-label="หมวดย่อยของไฟล์ที่ ${i+1}"><a class="mute" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">เปิดดู</a><button class="sm" data-bkx="${i}" aria-label="เอาออก">✕</button></div>`).join("")}
+<datalist id="dl-bksub2">${subsOf("lecture",b.ward).map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
+<div class="row" style="margin-top:10px"><button class="pri sm" id="bkSave" ${b.rows.length?"":"disabled"}>เพิ่มทั้งหมด ${b.rows.length} ลิงก์</button><button class="sm" id="bkBack">กลับไปแก้</button><button class="sm" id="bkCancel">ยกเลิก</button></div></div>`}
+document.addEventListener("input",e=>{if(!bulk)return;const t=e.target;if(t.dataset&&t.dataset.bk!==undefined)bulk.rows[+t.dataset.bk].title=t.value;if(t.dataset&&t.dataset.bks!==undefined)bulk.rows[+t.dataset.bks].sub=t.value;if(t.id==="bkText")bulk.text=t.value;if(t.id==="bkSub")bulk.sub=t.value});
+document.addEventListener("change",e=>{if(bulk&&e.target.id==="bkWard")bulk.ward=e.target.value});
 function linkBlock(kind,title,list,ward){if(kind==="lecture")list=[...list].sort(lecSorter());
 const sortSel=kind==="lecture"&&user?`<select id="lecSort" class="sortsel" aria-label="Sort by">${[["az","A→Z"],["za","Z→A"],["new","Latest"],["old","Oldest"]].map(([v,l])=>`<option value="${v}" ${v===load("lecSort","old")?"selected":""}>Sort by: ${l}</option>`).join("")}</select>`:"";
-const head=`<div class="row" style="justify-content:space-between"><h3>${esc(title)}</h3><div class="row">${sortSel}${isAdmin?`<button class="sm pri" data-ladd="${kind}">+ เพิ่มลิงก์</button>`:""}</div></div>`;
+const head=`<div class="row" style="justify-content:space-between"><h3>${esc(title)}</h3><div class="row">${sortSel}${isAdmin&&kind==="lecture"?`<button class="sm" data-lbulk="${kind}">+ หลายลิงก์</button>`:""}${isAdmin?`<button class="sm pri" data-ladd="${kind}">+ เพิ่มลิงก์</button>`:""}</div></div>`;
 if(!user)return head+`<p class="mute">เข้าสู่ระบบเพื่อดูและเพิ่มลิงก์</p><button class="sm" data-login>เข้าสู่ระบบ</button>`;
-const add=edit&&edit.id==="new"&&edit.kind===kind?linkForm(kind,ward,null):"";
+const add=(bulk&&bulk.kind===kind?bulkForm(ward):"")+(edit&&edit.id==="new"&&edit.kind===kind?linkForm(kind,ward,null):"");
 const subs=subsOf(kind,ward),cur=lecSub[kind+ward]||"*";
 if(!list.length&&!subs.length)return head+add+`<p class="mute">ยังไม่มีลิงก์</p>`;
 const chips=subs.length?`<div class="chips sub">${[["*","ทั้งหมด"],...subs.map(x=>[x,x])].map(([v,l])=>`<button class="chip ${v===cur?"on":""}" data-sub="${esc(v)}" data-subk="${esc(kind+ward)}">${esc(l)}</button>`).join("")}</div>`:"";
@@ -537,7 +557,16 @@ const ups=list.map((r,n)=>({id:r.id,pos:n,old:r.pos})).filter(u=>u.old!==u.pos);
 list.forEach((r,n)=>{r.pos=n});rows=[...rows.filter(r=>r.kind!=="senior"),...list];renderAll();
 const res=await Promise.all(ups.map(u=>sb.from("links").update({pos:u.pos}).eq("id",u.id)));
 if(res.some(x=>x.error)){say("บันทึกลำดับไม่สำเร็จ: "+res.find(x=>x.error).error.message);loadLinks()}return}
-if(d.ladd){edit={kind:d.ladd,id:"new"};renderAll()}
+if(d.lbulk){const cur=lecSub["lecture"+st.ward];bulk={kind:d.lbulk,step:"paste",text:"",rows:[],ward:st.ward,sub:cur&&cur!=="*"?cur:""};edit=null;renderAll();return}
+if(b.id==="bkCancel"){bulk=null;renderAll();return}
+if(b.id==="bkBack"){bulk.step="paste";renderAll();return}
+if(b.id==="bkCheck"){bulk.rows=parseBulk(bulk.text).map(r=>({...r,sub:r.sub||bulk.sub.trim()}));if(!bulk.rows.length){say("ไม่พบลิงก์ในรายการ เช็กว่าแต่ละบรรทัดมีลิงก์ที่ขึ้นต้นด้วย https://");return}bulk.step="check";renderAll();return}
+if(d.bkx!==undefined){bulk.rows.splice(+d.bkx,1);renderAll();return}
+if(b.id==="bkSave"){b.disabled=true;b.textContent="กำลังเพิ่ม...";
+const {error}=await sb.from("links").insert(bulk.rows.map(r=>({kind:"lecture",ward:bulk.ward,sub:r.sub.trim()||null,title:r.title.trim()||"ไม่มีชื่อ",url:r.url})));
+if(error){alertMsg(error);b.disabled=false;b.textContent="ลองอีกครั้ง";return}
+const n=bulk.rows.length;st.ward=bulk.ward;bulk=null;await loadLinks();renderNav();say("เพิ่ม "+n+" ลิงก์แล้ว");return}
+if(d.ladd){edit={kind:d.ladd,id:"new"};bulk=null;renderAll()}
 if(d.led){edit={id:d.led};renderAll()}
 if("lcancel" in d){edit=null;renderAll()}
 if(d.ldel){if(b.textContent!=="ยืนยันลบ"){b.textContent="ยืนยันลบ";return}
