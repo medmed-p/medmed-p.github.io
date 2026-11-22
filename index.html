@@ -216,8 +216,9 @@ header .band{position:relative}
 <h3>เข้าสู่ระบบ MedMed</h3>
 <div style="margin-top:12px"><label for="lgE">Username (a-z, 0-9, . _ - ยาว 3–20 ตัว)</label><input id="lgE" name="username" required autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-zA-Z0-9._-]{3,20}"></div>
 <div style="margin-top:12px"><label for="lgP">รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input id="lgP" name="password" type="password" required minlength="6" autocomplete="current-password"></div>
+<p class="mute">คุณยังไม่มีบัญชี</p>
 <p class="mute" id="lgMsg" role="status"></p>
-<div class="row"><button class="pri" type="submit">เข้าสู่ระบบ</button><button type="button" id="lgUp">สมัครสมาชิก</button><button type="button" id="lgX">ปิด</button></div>
+<div class="row"><button class="pri" type="submit">เข้าสู่ระบบ</button><button type="button" id="lgUp" hidden>สมัครสมาชิก</button><button type="button" id="lgX">ปิด</button></div>
 </form></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -463,7 +464,7 @@ ${kind==="lecture"?`<div><label>หมวดย่อย (ไม่ใส่ก�
 <div><label>วอร์ด</label><select name="ward"><option value="">ทั่วไป</option>${WARDS.map(w=>`<option ${w===(r?r.ward:ward)?"selected":""}>${esc(w)}</option>`).join("")}</select></div>`:""}
 </div><div class="row" style="margin-top:10px"><button class="pri sm">บันทึก</button><button type="button" class="sm" data-lcancel>ยกเลิก</button></div></form>`}
 function linkRow(r){if(edit&&edit.id===r.id)return linkForm(r.kind,r.ward,r);
-return`<div class="lrow">${r.kind==="senior"&&user?`<span class="mv"><button class="sm" data-lup="${r.id}" aria-label="เลื่อนขึ้น">▲</button><button class="sm" data-ldown="${r.id}" aria-label="เลื่อนลง">▼</button></span>`:""}<a class="lec" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title)}</a>${user?`<button class="sm" data-led="${r.id}">แก้</button><button class="sm" data-ldel="${r.id}">ลบ</button>`:""}</div>`}
+return`<div class="lrow"><a class="lec" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title)}</a>${user?`<button class="sm" data-led="${r.id}">แก้</button><button class="sm" data-ldel="${r.id}">ลบ</button>`:""}</div>`}
 function linkBlock(kind,title,list,ward){
 const head=`<div class="row" style="justify-content:space-between"><h3>${esc(title)}</h3>${user?`<button class="sm pri" data-ladd="${kind}">+ เพิ่มลิงก์</button>`:""}</div>`;
 if(!user)return head+`<p class="mute">เข้าสู่ระบบเพื่อดูและเพิ่มลิงก์</p><button class="sm" data-login>เข้าสู่ระบบ</button>`;
@@ -482,7 +483,7 @@ function renderSen(){const list=rows.filter(r=>r.kind==="senior");
 $("#sen").innerHTML=linkBlock("senior","ลิงก์สรุปรุ่นพี่",list.map(r=>({...r,sub:null})),"")}
 function renderAll(){renderLec();renderSen()}
 async function loadLinks(){if(!sb||!user){rows=[];renderAll();return}
-const {data,error}=await sb.from("links").select("*").order("created_at");if(data)data.sort((a,b)=>(a.pos??1e9)-(b.pos??1e9));
+const {data,error}=await sb.from("links").select("*").order("created_at");
 if(error){say("โหลดลิงก์ไม่ได้: "+error.message);return}rows=data||[];renderAll()}
 
 document.addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;const d=b.dataset;
@@ -503,7 +504,6 @@ if(d.ldel){if(b.textContent!=="ยืนยันลบ"){b.textContent="ยื�
 const {error}=await sb.from("links").delete().eq("id",d.ldel);if(error)alertMsg(error);else loadLinks()}});
 document.addEventListener("submit",async e=>{const f=e.target.closest(".lform");if(!f)return;e.preventDefault();
 const el=f.elements,v={title:el["title"].value.trim(),url:el["url"].value.trim(),ward:el["ward"]?el["ward"].value||null:null,sub:el["sub"]?el["sub"].value.trim()||null:null,kind:f.dataset.kind};
-if(f.dataset.id==="new"&&v.kind==="senior")v.pos=Math.max(-1,...rows.filter(r=>r.kind==="senior").map(r=>r.pos??-1))+1;
 const q=f.dataset.id==="new"?sb.from("links").insert(v):sb.from("links").update({title:v.title,url:v.url,ward:v.ward,sub:v.sub}).eq("id",f.dataset.id);
 const {error}=await q;if(error){alertMsg(error);return}edit=null;loadLinks()});
 function alertMsg(err){say("ผิดพลาด: "+err.message);console.error(err)}
