@@ -226,6 +226,11 @@ header .band{position:relative}
 <p class="mute">ติ๊ก = ผู้ใช้ทั่วไปเห็น · เอาติ๊กออก = ซ่อน (admin เห็นทุกอย่างเสมอ)</p>
 <div id="cfgList"></div>
 <div class="row" style="margin-top:10px"><button class="pri" id="cfgSave">บันทึก</button></div></div>
+<div class="card"><h3>รายชื่อวอร์ด</h3>
+<p class="mute">บรรทัดละ 1 วอร์ด เรียงตามลำดับที่อยากให้แสดง ใช้กับทุกหน้า (Case record, Lecture, Quiz) ตามปีที่ผู้ใช้เลือกในกล่องตั้งวันที่</p>
+<div class="grid2" style="margin-top:8px"><div><label for="wY5">Year 5</label><textarea id="wY5" rows="8"></textarea></div><div><label for="wY6">Year 6</label><textarea id="wY6" rows="8"></textarea></div></div>
+<p class="note" style="margin-top:10px">ถ้าเปลี่ยนชื่อวอร์ดที่มีอยู่ เคส ลิงก์ และข้อสอบเดิมยังผูกกับชื่อเก่า จะไม่ขึ้นใต้ชื่อใหม่ แนะนำให้เพิ่มหรือเรียงใหม่ได้ แต่ไม่ควรเปลี่ยนชื่อ</p>
+<div class="row" style="margin-top:10px"><button class="pri" id="wardSave">บันทึกรายชื่อวอร์ด</button></div></div>
 <div class="card"><h3>เห็นเฉพาะ admin เสมอ</h3>
 <p class="mute">ปุ่ม + เพิ่มลิงก์ ปุ่มแก้และลบในหน้า Lecture และ Link และกล่องจัดการชุดข้อสอบ</p></div>
 </section>
@@ -248,7 +253,9 @@ let quizSets=[]; // ชุดข้อสอบจาก Supabase ตารา�
 let CFG={hide:{}}; // การตั้งค่ากลางจาก admin (ตาราง app_config)
 let bulk=null; // เพิ่มหลายลิงก์ทีเดียว
 let user=null,isAdmin=false,rows=[],edit=null,lecSub={}; // isAdmin = แก้ไขเนื้อหากลาง (lecture, ลิงก์, ข้อสอบ) ได้ // lecSub = หมวดย่อยที่เลือกในแต่ละวอร์ด // ข้อมูลจาก Supabase
-const WARDS=["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency"];
+// รายชื่อวอร์ดเริ่มต้น (admin แก้ได้ในแท็บ Admin โดยไม่ต้องแก้โค้ด)
+const DEFAULT_WARDS={"Year 5":["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency","Elective II"],"Year 6":["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency","Elective II"]};
+let WARDS=DEFAULT_WARDS["Year 5"].slice(); // วอร์ดของปีที่เลือกอยู่
 let DECKS=[];
 // แปลงข้อสอบ 1 ข้อ (รูปแบบไฟล์นำเข้า) ให้เป็นรูปแบบที่หน้าทบทวนใช้
 function toCard(it,setTitle){if(it.type!=="mcq"&&it.type!=="flash")return null;
@@ -349,8 +356,12 @@ const F=[["subj","รายวิชา",1],["rStart","วันที่เร�
 ["site","สถานปฏิบัติงาน",1],["ptype","ประเภทผู้ป่วย",1],["hn","HN No.",1],["setting","Clinical setting"],["group","กลุ่มโรค",1],["cat","Category"],["cx","Complexity of case"],
 ["dx","การวินิจฉัย",1],["icd","ICD-10",1],["detail","รายละเอียด/ข้อมูล",1],["adv","อาจารย์ที่ปรึกษา"],["logbook","เก็บ log book",0,"c"],["epa","ต้องการรับการประเมิน EPA",0,"c"]];
 const LISTS=["subj","site","setting","group","cat","cx","dx","icd","adv"];
-$("#ward").innerHTML=WARDS.map(w=>`<option>${esc(w)}</option>`).join("");
-$("#qWard").innerHTML=`<option value="">ทุกวอร์ด</option>`+WARDS.map(w=>`<option>${esc(w)}</option>`).join("");
+function fillWardSelects(){const q=$("#qWard").value;$("#ward").innerHTML=WARDS.map(w=>`<option>${esc(w)}</option>`).join("");
+$("#qWard").innerHTML=`<option value="">ทุกวอร์ด</option>`+WARDS.map(w=>`<option>${esc(w)}</option>`).join("");if(WARDS.includes(q))$("#qWard").value=q}
+fillWardSelects();
+// ใช้รายชื่อวอร์ดตามปีที่เลือก แล้ววาดทุกหน้าใหม่
+function applyWards(){const yw=(CFG.wards&&CFG.wards[SET.year]&&CFG.wards[SET.year].length?CFG.wards[SET.year]:DEFAULT_WARDS[SET.year])||DEFAULT_WARDS["Year 5"];
+WARDS=yw.slice();if(!WARDS.includes(st.ward))st.ward=WARDS[0];fillWardSelects();renderNav();reset();renderRot();renderLog()}
 let cases=[],SET={rotW:{},rotY:{"Year 5":{},"Year 6":{}},year:"Year 5",rot:{}},editId=null,openSmart=null; // SET = การตั้งค่าส่วนตัว (ตาราง settings)
 const th=d=>{if(!d)return"";const[y,m,dd]=d.split("-");return`${dd}/${m}/${+y+543}`};
 // วันที่: เก็บในระบบเป็น yyyy-mm-dd แต่แสดงและพิมพ์เป็น dd/mm/yyyy (พิมพ์ปี พ.ศ. ก็ได้)
@@ -377,7 +388,7 @@ cases=a.data.map(r=>({...r.data,id:r.id}));
 SET={rotW:{},rot:{},...(b.data?b.data.data:{})};
 if(!SET.rotY)SET.rotY={"Year 5":SET.rotW||{},"Year 6":{}}; // ตารางเดิมย้ายเป็นของ Year 5
 YEARS.forEach(y=>{SET.rotY[y]=SET.rotY[y]||{}});if(!YEARS.includes(SET.year))SET.year="Year 5";
-renderRot();renderSheet();renderMigrate();renderLog()}
+applyWards();renderSheet();renderMigrate()}
 async function saveCase(c){const {id,...data}=c;
 const res=id?await sb.from("cases").update({data,updated_at:new Date().toISOString()}).eq("id",id).select("id").single()
             :await sb.from("cases").insert({data}).select("id").single();
@@ -414,22 +425,22 @@ function openForm(c){$("#f").hidden=false;
 const last=SET.rot||{};
 F.forEach(([k,,,t])=>{const el=$("#"+k),v=c?c[k]:undefined;
 if(t==="c")el.checked=c?!!c[k]:k==="logbook";else if(t==="d")el.value=dmy(v);else if(k==="ptype")el.value=v||"ผู้ป่วยใน";else el.value=v||""});
-$("#ward").value=(c?c.ward:last.ward)||WARDS[0];$("#bed").value=c?c.bed||"":"";if(!c)fillRot();
+if(c&&c.ward&&!WARDS.includes(c.ward))$("#ward").insertAdjacentHTML("beforeend",`<option>${esc(c.ward)}</option>`);
+$("#ward").value=(c?c.ward:WARDS.includes(last.ward)?last.ward:WARDS[0])||WARDS[0];$("#bed").value=c?c.bed||"":"";if(!c)fillRot();
 if(!c){const n=new Date(),today=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;$("#cStart").value=dmy(today)}
 $("#fTitle").textContent=c?"แก้ไขเคส":"เพิ่มเคส";$("#fSave").textContent=c?"บันทึกการแก้ไข":"บันทึกเคส";
 $("#f").scrollIntoView({behavior:"smooth",block:"start"})}
 // เลือกวอร์ดแล้วเติมรายวิชา สถานที่ และวันที่ปฏิบัติของวอร์ดนั้นให้อัตโนมัติ
 // ตารางวันที่แยกตามชั้นปี (เพิ่มชั้นปีหรือแก้รายชื่อวอร์ดของแต่ละปีได้ที่ YEAR_WARDS)
 const YEARS=["Year 5","Year 6"];
-const YEAR_WARDS={"Year 5":WARDS,"Year 6":WARDS};
 const rotNow=()=>SET.rotY[SET.year]||(SET.rotY[SET.year]={});
 function fillRot(){const r=rotNow()[$("#ward").value]||{};["subj","site","rStart","rEnd"].forEach(k=>{$("#"+k).value=k[0]==="r"?dmy(r[k]):r[k]||""})}
 $("#ward").addEventListener("change",fillRot);
 function renderRot(){$("#rotYears").innerHTML=YEARS.map(y=>`<button type="button" class="chip ${y===SET.year?"on":""}" data-year="${esc(y)}">${esc(y)}</button>`).join("");
 const rw=rotNow(),DT='type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off"';
-$("#rotRows").innerHTML=(YEAR_WARDS[SET.year]||WARDS).map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input ${DT} data-rw="${esc(w)}" data-k="rStart" value="${esc(dmy((rw[w]||{}).rStart))}"></label><label>สิ้นสุด<input ${DT} data-rw="${esc(w)}" data-k="rEnd" value="${esc(dmy((rw[w]||{}).rEnd))}"></label></div>`).join("");addPickers($("#rotRows"))}
+$("#rotRows").innerHTML=WARDS.map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input ${DT} data-rw="${esc(w)}" data-k="rStart" value="${esc(dmy((rw[w]||{}).rStart))}"></label><label>สิ้นสุด<input ${DT} data-rw="${esc(w)}" data-k="rEnd" value="${esc(dmy((rw[w]||{}).rEnd))}"></label></div>`).join("");addPickers($("#rotRows"))}
 $("#rotSave").addEventListener("click",async()=>{$$("#rotRows input.dt").forEach(i=>{const w=i.dataset.rw,r=rotNow();r[w]={...r[w],[i.dataset.k]:iso(i.value)}});await saveSet();if(!$("#f").hidden)fillRot();say("บันทึกตารางวอร์ดแล้ว")});
-$("#rotYears").addEventListener("click",async e=>{const b=e.target.closest("[data-year]");if(!b)return;SET.year=b.dataset.year;renderRot();if(!$("#f").hidden)fillRot();await saveSet()});
+$("#rotYears").addEventListener("click",async e=>{const b=e.target.closest("[data-year]");if(!b)return;SET.year=b.dataset.year;applyWards();if(!$("#f").hidden)fillRot();await saveSet()});
 renderRot();addPickers(document);
 function closeForm(){editId=null;$("#f").hidden=true}
 $("#addBtn").addEventListener("click",()=>{editId=null;openForm(null)});
@@ -538,9 +549,9 @@ else if(!list.length)body=`<p class="mute">ยังไม่มีลิงก�
 else{const groups=[...subs,""].map(g=>[g,list.filter(r=>(r.sub||"")===g)]).filter(([,l])=>l.length);
 body=groups.map(([g,l])=>(subs.length?`<h4 class="gh">${esc(g||"อื่นๆ")}</h4>`:"")+l.map(linkRow).join("")).join("")}
 return head+chips+add+body}
-function renderLec(){if(!$("#lec"))return;$("#lec").innerHTML=linkBlock("lecture","Lecture file "+st.ward,rows.filter(r=>r.kind==="lecture"&&r.ward===st.ward),st.ward)}
+function renderLec(){if(!$("#lec"))return;$("#lec").innerHTML=linkBlock("lecture","ไฟล์ lecture "+st.ward,rows.filter(r=>r.kind==="lecture"&&r.ward===st.ward),st.ward)}
 function renderSen(){const list=rows.filter(r=>r.kind==="senior");
-$("#sen").innerHTML=linkBlock("senior","Link",list.map(r=>({...r,sub:null})),"")}
+$("#sen").innerHTML=linkBlock("senior","ลิงก์สรุปรุ่นพี่",list.map(r=>({...r,sub:null})),"")}
 function renderAll(){renderLec();renderSen()}
 async function loadLinks(){if(!sb||!user){rows=[];renderAll();return}
 const {data,error}=await sb.from("links").select("*").order("created_at");
@@ -624,8 +635,13 @@ const {error}=await sb.from("quiz_sets").delete().eq("id",b.dataset.qdel);if(err
 // ---------- การตั้งค่ากลาง (admin เปิด/ปิดสิ่งที่ผู้ใช้ทั่วไปเห็น)
 async function loadConfig(){if(!sb||!user){CFG={hide:{}};return}
 const {data}=await sb.from("app_config").select("data").eq("id",1).maybeSingle();
-CFG={hide:{},...(data?data.data:{})};renderCfg()}
-function renderCfg(){$("#cfgList").innerHTML=TOGGLES.map(([k,l])=>`<label class="ck"><input type="checkbox" data-cfg="${k}" ${CFG.hide[k]?"":"checked"}> ${esc(l)}</label>`).join("")}
+CFG={hide:{},...(data?data.data:{})};renderCfg();applyWards()}
+function renderCfg(){const wl=y=>((CFG.wards&&CFG.wards[y]&&CFG.wards[y].length)?CFG.wards[y]:DEFAULT_WARDS[y]).join("\n");$("#wY5").value=wl("Year 5");$("#wY6").value=wl("Year 6");
+$("#cfgList").innerHTML=TOGGLES.map(([k,l])=>`<label class="ck"><input type="checkbox" data-cfg="${k}" ${CFG.hide[k]?"":"checked"}> ${esc(l)}</label>`).join("")}
+$("#wardSave").addEventListener("click",async()=>{const rd=id=>[...new Set($(id).value.split(/\n/).map(x=>x.trim()).filter(Boolean))];
+const w={"Year 5":rd("#wY5"),"Year 6":rd("#wY6")};if(!w["Year 5"].length||!w["Year 6"].length){say("แต่ละปีต้องมีอย่างน้อย 1 วอร์ด");return}
+CFG={...CFG,wards:w};const {error}=await sb.from("app_config").upsert({id:1,data:CFG,updated_at:new Date().toISOString()});
+if(error){say("บันทึกไม่สำเร็จ: "+error.message);return}renderCfg();applyWards();say("บันทึกรายชื่อวอร์ดแล้ว")});
 $("#cfgSave").addEventListener("click",async()=>{const hide={};$$("#cfgList [data-cfg]").forEach(c=>{if(!c.checked)hide[c.dataset.cfg]=true});
 CFG={...CFG,hide};const {error}=await sb.from("app_config").upsert({id:1,data:CFG,updated_at:new Date().toISOString()});
 if(error){say("บันทึกไม่สำเร็จ: "+error.message);return}say("บันทึกแล้ว ผู้ใช้ทั่วไปจะเห็นตามนี้ตอนเปิดเว็บครั้งถัดไป")});
