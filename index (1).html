@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ward Notes ปี 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@500;700&family=IBM+Plex+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm, clinical, quick to use on a ward round
+   IDEA: the pocket index-card box a clinical student carries, tabbed by ward
+   PICTURE: the live study card itself, large at the top
+   COLOUR and TYPE: white / scrub ceil blue #1f5f99 / coral accent; Anuphan + IBM Plex Sans Thai
+   LAYOUT: top tabs, chips, then the working card; stacks on phone */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#0e1520);--panel:light-dark(#eef3f9,#162232);--ink:light-dark(#141a22,#e8eef5);
+--mute:light-dark(#5a6573,#9aa8b8);--line:light-dark(#d5dee8,#2a3a4e);--blue:light-dark(#1f5f99,#6ea8e0);
+--blueInk:light-dark(#ffffff,#0e1520);--acc:light-dark(#d9471f,#ff8a65);--ok:light-dark(#1d7a4a,#5fd39a);--bad:light-dark(#b3261e,#ff8a80);--warn:light-dark(#fff3d6,#3d3115);--warnI:light-dark(#6d4c00,#f5d68a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "IBM Plex Sans Thai",system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Anuphan,"IBM Plex Sans Thai",sans-serif;line-height:1.2;margin:0;text-wrap:balance}
+h1{font-size:clamp(26px,5vw,36px)}h2{font-size:22px}h3{font-size:18px}
+.band{padding:clamp(20px,4vw,44px) max(5vw,16px);max-width:1000px;margin:auto}
+header{background:var(--blue);color:var(--blueInk)}
+header .band{padding-bottom:0}
+header p{margin:6px 0 18px;opacity:.85;font-size:15px}
+nav{display:flex;gap:4px;overflow-x:auto}
+nav a{flex:none;padding:12px 18px;border-radius:12px 12px 0 0;color:inherit;text-decoration:none;font-weight:600;opacity:.8}
+nav a.on{background:var(--bg);color:var(--ink);opacity:1}
+button,input,select,textarea{font:inherit;font-size:16px;color:inherit}
+button{min-height:44px;padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);cursor:pointer}
+button.pri{background:var(--blue);color:var(--blueInk);border-color:var(--blue)}
+button.sm{min-height:38px;padding:4px 12px;font-size:14px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+input,select,textarea{width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+input[type=checkbox]{width:22px;min-height:22px;height:22px;accent-color:var(--blue)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{border-radius:99px;padding:6px 14px;min-height:40px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip small{opacity:.7}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mute{color:var(--mute);font-size:14px}
+.card{background:var(--panel);border-radius:18px;padding:clamp(16px,4vw,30px);margin:14px 0}
+.flash{min-height:260px;display:grid;place-items:center;text-align:center;cursor:pointer;font-size:clamp(18px,3vw,22px);border:2px solid var(--line);background:var(--bg);border-radius:18px;padding:22px;white-space:pre-line}
+.flash.back{border-color:var(--blue);text-align:start;font-size:17px}
+.flash small{display:block;font-size:13px;color:var(--mute);margin-bottom:10px}
+.flash .ans{font-family:Anuphan,sans-serif;font-size:20px;margin-bottom:10px;color:var(--blue)}
+.qt{font-size:19px;margin:8px 0 6px;font-weight:600}
+.opt{display:block;width:100%;text-align:start;margin:8px 0;background:var(--bg)}
+.opt b{color:var(--mute);margin-inline-end:8px}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--bg))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--bg))}
+.ex{background:var(--bg);border-radius:12px;padding:12px 14px;margin:10px 0;white-space:pre-line}
+.match{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.match button{text-align:start;background:var(--bg);width:100%;margin:4px 0;font-size:15px}
+.match button.sel{border-color:var(--blue);border-width:2px}
+.match button.done{opacity:.35;pointer-events:none;border-color:var(--ok)}
+.match button.bad{border-color:var(--bad)}
+.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--acc)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}
+label{font-size:14px;color:var(--mute);display:block}
+label i{color:var(--acc);font-style:normal}
+fieldset{border:0;padding:0;margin:0 0 18px}
+legend{font-family:Anuphan,sans-serif;font-size:17px;padding:0;margin-bottom:8px}
+.ck{display:flex;gap:10px;align-items:center;font-size:16px;color:var(--ink);min-height:44px}
+.item{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+.item b{font-family:Anuphan,sans-serif;font-size:17px}
+.tag{display:inline-block;font-size:13px;padding:2px 10px;border-radius:99px;background:var(--panel);margin:2px 6px 2px 0}
+.tag.w{background:var(--warn);color:var(--warnI)}.tag.g{background:color-mix(in srgb,var(--ok) 18%,var(--bg));color:var(--ok)}
+.smart{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.smart div{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line)}
+.smart span{font-size:14px;color:var(--mute)}
+.smart p{margin:0;overflow-wrap:anywhere;white-space:pre-line}
+.links a{display:block;padding:14px 0;color:var(--blue);font-weight:600;text-decoration:none;overflow-wrap:anywhere}
+.note{border-inline-start:4px solid var(--acc);padding:10px 14px;background:var(--panel);border-radius:0 10px 10px 0;font-size:14px}
+.fab{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));width:60px;height:60px;border-radius:18px;background:var(--blue);color:var(--blueInk);border:0;font-size:32px;line-height:1;box-shadow:0 8px 22px rgb(20 40 80/.3);z-index:9}
+#v-log{padding-bottom:110px}
+.stat{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}.stat div{background:var(--panel);border-radius:12px;padding:10px 12px}.stat b{display:block;font-size:26px;font-family:Anuphan,sans-serif;line-height:1.2}.stat span{font-size:13px;color:var(--mute)}
+.wardbars div{display:grid;grid-template-columns:6.5em minmax(0,1fr) 2em;gap:10px;align-items:center;font-size:14px;padding:3px 0}.wardbars i{height:8px;background:var(--line);border-radius:9px;overflow:hidden}.wardbars em{display:block;height:100%;background:var(--blue)}.wardbars b{text-align:right}
+.sec{margin-top:22px}.sec h3{display:flex;align-items:center;gap:8px;margin-bottom:6px}.led{width:10px;height:10px;border-radius:50%;background:var(--mute)}.led.g{background:var(--ok)}
+.item.dc{opacity:.85}.wb{display:inline-block;font-size:13px;font-weight:600;padding:2px 10px;border-radius:8px;background:color-mix(in srgb,var(--ok) 18%,var(--bg));color:var(--ok);margin-inline-end:8px}
+.bed{font-size:20px}.dxl{font-size:17px;margin:4px 0 2px}
+.acts{display:flex;gap:6px;flex:none}.ib{min-height:44px;min-width:44px;padding:0 10px;border-radius:12px;border:0;font-size:14px;font-weight:600;position:relative}
+.ib.ed{background:var(--warn);color:var(--warnI)}.ib.d{background:color-mix(in srgb,var(--ok) 16%,var(--bg));color:var(--ok)}.ib.un{background:color-mix(in srgb,var(--blue) 14%,var(--bg));color:var(--blue);font-size:18px}.ib.lb{background:color-mix(in srgb,var(--blue) 14%,var(--bg));color:var(--blue)}
+.dot{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:var(--acc);border:2px solid var(--bg)}
+@media(max-width:600px){.acts .ib{padding:0 8px;font-size:13px}}
+header .band{position:relative}
+.acct{position:absolute;top:clamp(20px,4vw,44px);right:max(5vw,16px);display:flex;gap:8px;align-items:center;font-size:14px}
+.acct span{opacity:.85;max-width:16em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct button{background:transparent;color:inherit;border-color:currentColor}
+.lrow{display:flex;gap:6px;align-items:center;border-top:1px solid var(--line)}.lrow .lec{flex:1;border:0}
+.lec{display:block;padding:12px 0;color:var(--blue);font-weight:600;text-decoration:none;overflow-wrap:anywhere}
+#lec h3,#sen h3{margin:0}#lec .row,#sen .row{margin-bottom:8px}
+.lform{background:var(--bg);border-radius:12px;padding:12px;margin:8px 0}
+.modal{position:fixed;inset:0;background:rgb(0 0 0/.45);display:grid;place-items:center;padding:16px;z-index:20}.modal .card{width:min(420px,100%);margin:0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;z-index:30;max-width:90vw}
+@media(max-width:600px){.acct{position:static;justify-content:flex-end;margin-bottom:8px}}
+[hidden]{display:none!important}
+@media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<header><div class="band">
+<div id="acct" class="acct"></div>
+<h1>MedMed</h1>
+<p>From someone</p>
+<nav id="nav"><a href="#study">ทบทวน</a><a href="#log">บันทึกเคส</a><a href="#links">ลิงก์สรุปรุ่นพี่</a></nav>
+</div></header>
+
+<main>
+<section id="v-study" class="band">
+<div class="chips" id="wards"></div>
+<div class="card" id="lec"></div>
+<div class="chips" id="decks"></div>
+<div class="chips" id="modes">
+<button class="chip" data-m="flash">Flashcard</button>
+<button class="chip" data-m="mcq">MCQ</button>
+<button class="chip" data-m="match">จับคู่</button>
+<button class="chip" data-f="rand">สุ่มลำดับ</button>
+<button class="chip" data-f="wrong">เฉพาะข้อที่เคยผิด</button>
+</div>
+<div class="card" id="stage"></div>
+<p class="mute">คลังข้อสอบจะกลับมาหลังเชื่อม Supabase (ต้องล็อกอินก่อนถึงเห็น)</p>
+</section>
+
+<section id="v-log" class="band" hidden>
+<h2>บันทึกเคส</h2><button class="fab" id="addBtn" aria-label="เพิ่มเคส">+</button>
+<p class="note">ตอนนี้ข้อมูลยังเก็บในเครื่องที่ใช้บันทึกเท่านั้น (ทดลองดูหน้าตา) ขั้นถัดไปจะเชื่อม Google Sheet ให้เห็นตรงกันทั้งมือถือ, iPad และคอม</p>
+
+<form id="f" class="card" hidden>
+<h3 id="fTitle" style="margin-bottom:14px">เพิ่มเคส</h3>
+<fieldset><legend>Rotation <span class="mute">(จำค่าล่าสุดไว้ให้)</span></legend><div class="grid2">
+<div><label for="ward">วอร์ด</label><select id="ward"></select></div>
+<div><label for="subj">รายวิชา <i>*</i></label><input id="subj" list="dl-subj" placeholder="เช่น ศศ511::ศัลยศาสตร์ปฏิบัติการทางคลินิก 2"></div>
+<div><label for="site">สถานปฏิบัติงาน <i>*</i></label><input id="site" list="dl-site" placeholder="เช่น องครักษ์"></div>
+<div><label for="rStart">วันที่เริ่มปฏิบัติ</label><input id="rStart" type="date"></div>
+<div><label for="rEnd">วันที่สิ้นสุดปฏิบัติ</label><input id="rEnd" type="date"></div>
+</div></fieldset>
+<fieldset><legend>ผู้ป่วย</legend><div class="grid2">
+<div><label for="bed">เตียง</label><input id="bed" autocomplete="off" placeholder="เช่น 9/2-8"></div>
+<div><label for="hn">HN No. <i>*</i></label><input id="hn" inputmode="numeric" autocomplete="off"></div>
+<div><label for="ptype">ประเภทผู้ป่วย <i>*</i></label><select id="ptype"><option>ผู้ป่วยใน</option><option>ผู้ป่วยนอก</option></select></div>
+<div><label for="cStart">วันที่เริ่มดูแล</label><input id="cStart" type="date"></div>
+<div><label for="cEnd">วันที่สิ้นสุดการดูแล</label><input id="cEnd" type="date"></div>
+<div><label for="setting">Clinical setting</label><input id="setting" list="dl-setting"></div>
+<div><label for="group">กลุ่มโรค <i>*</i></label><input id="group" list="dl-group" placeholder="เช่น Disorders of nervous system"></div>
+<div><label for="cat">Category</label><input id="cat" list="dl-cat"></div>
+<div><label for="cx">Complexity of case</label><input id="cx" list="dl-cx"></div>
+<div><label for="dx">การวินิจฉัย <i>*</i></label><input id="dx" list="dl-dx"></div>
+<div><label for="icd">ICD-10 <i>*</i></label><input id="icd" list="dl-icd" autocapitalize="characters"></div>
+<div><label for="adv">อาจารย์ที่ปรึกษา</label><input id="adv" list="dl-adv"></div>
+</div>
+<div style="margin-top:12px"><label for="detail">รายละเอียด/ข้อมูล <i>*</i></label><textarea id="detail" rows="4"></textarea></div>
+<label class="ck"><input type="checkbox" id="logbook" checked> เก็บ log book</label>
+<label class="ck"><input type="checkbox" id="epa"> ต้องการรับการประเมิน EPA จากอาจารย์</label>
+</fieldset>
+<p class="mute">ช่องที่มี * คือช่องบังคับของ SMART ถ้ายังไม่ครบก็บันทึกไว้ก่อนได้ เคสจะขึ้นป้าย “ยังขาด”</p>
+<div class="row"><button class="pri" type="submit" id="fSave">บันทึกเคส</button><button type="button" id="fCancel">ยกเลิก</button></div>
+</form>
+<div id="dls"></div>
+
+<div class="row" style="margin-top:12px"><input id="q" placeholder="ค้นหา HN, การวินิจฉัย, ICD-10" style="flex:1 1 220px"><select id="qWard" style="flex:0 1 200px"></select><select id="qSmart" style="flex:0 1 180px"><option value="">ทุกสถานะ</option><option value="todo">ยังไม่กรอก SMART</option><option value="done">กรอก SMART แล้ว</option></select><select id="qSort" style="flex:0 1 180px"><option value="date">ล่าสุดก่อน</option><option value="bed">Ward → Bed</option></select></div>
+<div id="stats"></div>
+<div id="list"></div>
+<div class="row" style="margin-top:16px"><button id="csv">คัดลอกเป็น CSV (Excel/Sheets)</button><button id="bak">คัดลอกสำรอง</button><button id="imp">นำเข้าข้อมูลสำรอง</button><span class="mute" id="msg" role="status"></span></div>
+<textarea id="impBox" rows="4" hidden placeholder="วางข้อมูลสำรอง แล้วกดนำเข้าอีกครั้ง"></textarea>
+</section>
+
+<section id="v-links" class="band" hidden>
+<h2>ลิงก์สรุปรุ่นพี่</h2>
+<div class="card" id="sen"></div>
+</section>
+</main>
+
+<div id="toast" class="toast" role="status" hidden></div>
+<div id="login" class="modal" hidden><form class="card" id="loginF">
+<h3>เข้าสู่ระบบ</h3>
+<div style="margin-top:12px"><label for="lgE">อีเมล</label><input id="lgE" type="email" required autocomplete="email"></div>
+<div style="margin-top:12px"><label for="lgP">รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input id="lgP" type="password" required minlength="6" autocomplete="current-password"></div>
+<p class="mute" id="lgMsg" role="status"></p>
+<div class="row"><button class="pri" type="submit">เข้าสู่ระบบ</button><button type="button" id="lgUp">สมัครสมาชิก</button><button type="button" id="lgX">ปิด</button></div>
+</form></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+{
+const QX=/*QDATA*/[];
+let user=null,rows=[],edit=null; // ข้อมูลจาก Supabase
+const WARDS=["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency"];
+const SUBS=[...new Set(QX.map(q=>q.s))];
+const DECKS=SUBS.map(s=>({ward:"Surgery",title:s,items:QX.filter(q=>q.s===s)}));
+
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const say=t=>{const m=$("#toast");m.textContent=t;m.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>{m.hidden=true},3500)};
+async function copy(t){try{await navigator.clipboard.writeText(t);return true}catch(e){return false}}
+
+// ---------- routing
+const views=["study","log","links"];
+function route(){const h=location.hash.slice(1),v=views.includes(h)?h:"study";
+views.forEach(x=>{$("#v-"+x).hidden=x!==v});
+$$("#nav a").forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+v))}
+addEventListener("hashchange",route);route();
+
+// ---------- study
+const st=Object.assign({ward:"Surgery",deck:0,mode:"mcq",rand:false,wrongOnly:false},load("st3",{}));
+const wrong=load("wrong2",{});
+let order=[],i=0,flipped=false,score=0,answered=false,sel=null,mt=null;
+const deckList=()=>DECKS.map((d,n)=>({...d,n})).filter(d=>d.ward===st.ward);
+const deck=()=>DECKS[st.deck];
+const key=q=>q.s+"#"+q.n;
+function renderNav(){
+$("#wards").innerHTML=WARDS.map(w=>`<button class="chip ${w===st.ward?"on":""}" data-w="${esc(w)}">${esc(w)}</button>`).join("");
+const dl=deckList();if(dl.length&&!dl.some(d=>d.n===st.deck))st.deck=dl[0].n;
+$("#decks").innerHTML=dl.map(d=>`<button class="chip ${d.n===st.deck?"on":""}" data-d="${d.n}">${esc(d.title)} <small>${d.items.length}</small></button>`).join("");
+$$("#modes [data-m]").forEach(b=>b.classList.toggle("on",b.dataset.m===st.mode));
+$("#modes [data-f=rand]").classList.toggle("on",st.rand);$("#modes [data-f=wrong]").classList.toggle("on",st.wrongOnly);
+$("#modes").hidden=!dl.length;save("st3",st);renderLec()}
+function reset(){i=0;flipped=false;score=0;answered=false;sel=null;
+if(!deckList().length){renderStage();return}
+let it=deck().items;if(st.mode==="mcq")it=it.filter(q=>q.o);if(st.wrongOnly)it=it.filter(q=>wrong[key(q)]);
+order=st.rand?shuffle(it):it;
+if(st.mode==="match")newMatch();renderStage()}
+function newMatch(){const p=shuffle(order.filter(q=>q.a.length<=60&&q.q.length<=90)).slice(0,5);
+mt={p,l:shuffle(p.map((q,k)=>[k,q.q])),r:shuffle(p.map((q,k)=>[k,q.a])),done:[]}}
+const prog=(n,t)=>`<div class="row mute" style="justify-content:space-between"><span>${n} / ${t}</span><span>${esc(deck().title)}</span></div><div class="bar"><i style="width:${t?n/t*100:0}%"></i></div>`;
+function renderStage(){const s=$("#stage");
+if(!deckList().length){s.innerHTML=`<h3>ยังไม่มีชุดทบทวนของวอร์ด${esc(st.ward)}</h3><p class="mute">ส่ง PDF lecture ของวอร์ดนี้มาในแชท แล้วจะแปลงเป็นชุดการ์ดให้</p>`;return}
+if(!order.length){s.innerHTML=`<h3>${st.wrongOnly?"ยังไม่มีข้อที่เคยผิดในชุดนี้":"ไม่มีข้อในชุดนี้"}</h3>`;return}
+if(st.mode==="flash"){const q=order[i];
+s.innerHTML=`${prog(i+1,order.length)}<div class="flash ${flipped?"back":""}" id="fc" tabindex="0" role="button" aria-label="พลิกการ์ด"><div>${flipped
+?`<small>คำตอบ</small><div class="ans">${esc(q.a)}</div>${q.e?esc(q.e):""}`
+:`<small>${esc(q.t||"")} · แตะเพื่อพลิก</small>${esc(q.q)}`}</div></div>
+<div class="row" style="margin-top:14px;justify-content:space-between"><button id="prev" ${i?"":"disabled"}>ก่อนหน้า</button><button class="pri" id="next">${i<order.length-1?"ถัดไป":"เริ่มใหม่"}</button></div>`}
+if(st.mode==="mcq"){
+if(i>=order.length){s.innerHTML=`<h2>ได้ ${score} / ${order.length}</h2><p class="mute">ข้อที่ผิดถูกเก็บไว้ กด “เฉพาะข้อที่เคยผิด” เพื่อทวนซ้ำ</p><button class="pri" id="again">ทำอีกครั้ง</button>`;return}
+const q=order[i];
+s.innerHTML=`${prog(i,order.length)}<div>${q.t?`<span class="tag">${esc(q.t)}</span>`:""}${q.r>=2?`<span class="tag w">ออกซ้ำ ${q.r} รอบ</span>`:""}${wrong[key(q)]?`<span class="tag w">เคยผิด</span>`:""}</div>
+<div class="qt">${esc(q.q)}</div>${q.o.map((o,n)=>`<button class="opt" data-o="${n}"><b>${"ABCDEF"[n]}</b>${esc(o)}</button>`).join("")}
+<div id="ex"></div><div class="row" style="justify-content:space-between;margin-top:8px"><button id="mprev" ${i?"":"disabled"}>ก่อนหน้า</button><button class="pri" id="mnext">${answered?"ข้อต่อไป":"ข้าม"}</button></div>`}
+if(st.mode==="match"){
+if(!mt.p.length){s.innerHTML=`<p class="mute">ชุดนี้ไม่มีข้อสั้นพอสำหรับจับคู่</p>`;return}
+if(mt.done.length>=mt.p.length){s.innerHTML=`<h2>จับคู่ครบแล้ว</h2><button class="pri" id="again">รอบใหม่</button>`;return}
+s.innerHTML=`${prog(mt.done.length,mt.p.length)}<p class="mute">แตะคำถามทางซ้าย แล้วแตะคำตอบที่คู่กันทางขวา</p><div class="match"><div>${mt.l.map(([k,x])=>`<button class="ml ${mt.done.includes(k)?"done":""} ${sel===k?"sel":""}" data-k="${k}">${esc(x)}</button>`).join("")}</div><div>${mt.r.map(([k,x])=>`<button class="mr ${mt.done.includes(k)?"done":""}" data-k="${k}">${esc(x)}</button>`).join("")}</div></div>`}}
+$("#wards").addEventListener("click",e=>{const b=e.target.closest("[data-w]");if(!b)return;st.ward=b.dataset.w;renderNav();reset()});
+$("#decks").addEventListener("click",e=>{const b=e.target.closest("[data-d]");if(!b)return;st.deck=+b.dataset.d;renderNav();reset()});
+$("#modes").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+if(b.dataset.m)st.mode=b.dataset.m;if(b.dataset.f==="rand")st.rand=!st.rand;if(b.dataset.f==="wrong")st.wrongOnly=!st.wrongOnly;renderNav();reset()});
+$("#stage").addEventListener("click",e=>{const t=e.target;
+if(t.closest("#fc")){flipped=!flipped;renderStage();return}
+if(t.id==="next"){i=i<order.length-1?i+1:0;flipped=false;renderStage()}
+if(t.id==="prev"){i--;flipped=false;renderStage()}
+if(t.id==="again")reset();
+const o=t.closest(".opt");
+if(o&&!answered){answered=true;const q=order[i],pick=+o.dataset.o,ok=pick===q.k;
+$$(".opt").forEach(b=>{const n=+b.dataset.o;if(n===q.k)b.classList.add("ok");else if(n===pick)b.classList.add("bad")});
+if(ok){score++;delete wrong[key(q)]}else wrong[key(q)]=1;save("wrong2",wrong);
+$("#ex").innerHTML=`<div class="ex"><b>${ok?"ถูกต้อง":"ยังไม่ใช่"}</b> — เฉลย: ${esc(q.a)}${q.e?"\n"+esc(q.e):""}${q.w?"\nหมายเหตุ: "+esc(q.w):""}</div>`;$("#mnext").textContent="ข้อต่อไป"}
+if(t.id==="mnext"){i++;answered=false;renderStage();scrollTo({top:$("#stage").offsetTop-10})}
+if(t.id==="mprev"){i--;answered=false;renderStage()}
+const l=t.closest(".ml"),r=t.closest(".mr");
+if(l){sel=+l.dataset.k;renderStage()}
+if(r&&sel!==null){if(+r.dataset.k===sel){mt.done.push(sel);sel=null;renderStage()}else{r.classList.add("bad");setTimeout(()=>r.classList.remove("bad"),500)}}});
+$("#stage").addEventListener("keydown",e=>{if(e.target.id==="fc"&&(e.key==="Enter"||e.key===" ")){e.preventDefault();flipped=!flipped;renderStage();$("#fc").focus()}});
+renderNav();reset();
+
+// ---------- patient log (fields follow the SMART form order)
+const F=[["subj","รายวิชา",1],["rStart","วันที่เริ่มปฏิบัติ",0,"d"],["rEnd","วันที่สิ้นสุดปฏิบัติ",0,"d"],["cStart","วันที่เริ่มดูแล",0,"d"],["cEnd","วันที่สิ้นสุดการดูแล",0,"d"],
+["site","สถานปฏิบัติงาน",1],["ptype","ประเภทผู้ป่วย",1],["hn","HN No.",1],["setting","Clinical setting"],["group","กลุ่มโรค",1],["cat","Category"],["cx","Complexity of case"],
+["dx","การวินิจฉัย",1],["icd","ICD-10",1],["detail","รายละเอียด/ข้อมูล",1],["adv","อาจารย์ที่ปรึกษา"],["logbook","เก็บ log book",0,"c"],["epa","ต้องการรับการประเมิน EPA",0,"c"]];
+const LISTS=["subj","site","setting","group","cat","cx","dx","icd","adv"],ROT=["ward","subj","site","rStart","rEnd"];
+$("#ward").innerHTML=WARDS.map(w=>`<option>${esc(w)}</option>`).join("");
+$("#qWard").innerHTML=`<option value="">ทุกวอร์ด</option>`+WARDS.map(w=>`<option>${esc(w)}</option>`).join("");
+let cases=load("cases2",null);
+if(!cases){cases=load("cases",[]).map(c=>({id:c.id,cStart:c.date,hn:c.hn,dx:c.dx,detail:c.note,ptype:"ผู้ป่วยใน",logbook:true}));save("cases2",cases)}
+let editId=null,openSmart=null;
+const th=d=>{if(!d)return"";const[y,m,dd]=d.split("-");return`${dd}/${m}/${+y+543}`};
+const val=(c,f)=>f[3]==="d"?th(c[f[0]]):f[3]==="c"?(c[f[0]]?"✓ เลือก":"ไม่เลือก"):(c[f[0]]||"");
+const missing=c=>F.filter(f=>f[2]&&!c[f[0]]).map(f=>f[1]);
+function renderLists(){$("#dls").innerHTML=LISTS.map(k=>`<datalist id="dl-${k}">${[...new Set(cases.map(c=>c[k]).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`).join("")}
+function openForm(c){$("#f").hidden=false;
+const last=load("rot",{});
+F.forEach(([k,,,t])=>{const el=$("#"+k),v=c?c[k]:(ROT.includes(k)?last[k]:undefined);
+if(t==="c")el.checked=c?!!c[k]:k==="logbook";else if(k==="ptype")el.value=v||"ผู้ป่วยใน";else el.value=v||""});
+$("#ward").value=(c?c.ward:last.ward)||WARDS[0];$("#bed").value=c?c.bed||"":"";
+if(!c){const today=new Date().toISOString().slice(0,10);$("#cStart").value=today}
+$("#fTitle").textContent=c?"แก้ไขเคส":"เพิ่มเคส";$("#fSave").textContent=c?"บันทึกการแก้ไข":"บันทึกเคส";
+$("#f").scrollIntoView({behavior:"smooth",block:"start"})}
+function closeForm(){editId=null;$("#f").hidden=true}
+$("#addBtn").addEventListener("click",()=>{editId=null;openForm(null)});
+$("#fCancel").addEventListener("click",closeForm);
+$("#f").addEventListener("submit",e=>{e.preventDefault();
+const old=cases.find(x=>x.id===editId),c={id:editId||Date.now(),smart:old?old.smart:false};
+F.forEach(([k,,,t])=>{const el=$("#"+k);c[k]=t==="c"?el.checked:el.value.trim()});c.ward=$("#ward").value;c.bed=$("#bed").value.trim();c.dc=old?!!old.dc:false;
+if(!c.hn&&!c.dx){say("ใส่ HN หรือการวินิจฉัยอย่างน้อยหนึ่งช่อง");return}
+cases=old?cases.map(x=>x.id===editId?c:x):[...cases,c];save("cases2",cases);
+save("rot",Object.fromEntries(ROT.map(k=>[k,c[k]])));closeForm();renderLog();say("บันทึกแล้ว")});
+function card(c){const m=missing(c);return`<div class="item ${c.dc?"dc":""}">
+<div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div>${c.ward?`<span class="wb">${esc(c.ward)}</span>`:""}${c.bed?`<b class="bed">${esc(c.bed)}</b>`:""}
+<div class="dxl">${esc(c.dx||"ยังไม่ใส่การวินิจฉัย")}</div><div class="mute">HN ${esc(c.hn||"-")} · ${esc(c.ptype||"")} · ${esc(th(c.cStart))}${c.dc&&c.cEnd?" – "+esc(th(c.cEnd)):""}</div></div>
+<div class="acts"><button class="ib ed" data-e="${c.id}" aria-label="แก้ไข">แก้</button>${c.dc?`<button class="ib un" data-dc="${c.id}" aria-label="ย้ายกลับเป็น active">↺</button>`:`<button class="ib d" data-dc="${c.id}">D/C</button>`}<button class="ib lb" data-s="${c.id}" aria-label="เตรียมกรอก SMART">SMART${c.smart?"":`<i class="dot"></i>`}</button></div></div>
+<div>${c.smart?`<span class="tag g">กรอก SMART แล้ว</span>`:""}${m.length?`<span class="tag w">ยังขาด: ${esc(m.join(", "))}</span>`:""}${c.epa?`<span class="tag">ขอ EPA</span>`:""}</div>
+${openSmart===c.id?`<div class="smart"><p class="mute" style="margin-bottom:6px">เรียงตามลำดับช่องในฟอร์ม SMART แตะ “คัดลอก” แล้ววางทีละช่อง</p>${F.map((f,n)=>`<div><span>${esc(f[1])}</span><p>${esc(val(c,f))||"—"}</p>${f[3]==="c"?"<i></i>":`<button class="sm" data-cp="${c.id}:${n}">คัดลอก</button>`}</div>`).join("")}
+<div class="row" style="margin-top:8px"><button class="sm" data-all="${c.id}">คัดลอกทั้งหมด</button><button class="sm pri" data-t="${c.id}">${c.smart?"ทำเป็นยังไม่กรอก":"กรอก SMART แล้ว ✓"}</button><button class="sm" data-x="${c.id}">ลบเคส</button></div></div>`:""}
+</div>`}
+function renderLog(){renderLists();
+const q=$("#q").value.trim().toLowerCase(),sj=$("#qWard").value,sm=$("#qSmart").value,so=$("#qSort").value;
+const rows=cases.filter(c=>(!sj||c.ward===sj)&&(!sm||(sm==="done")===!!c.smart)&&(!q||[c.hn,c.dx,c.icd,c.bed,c.ward].join(" ").toLowerCase().includes(q)))
+.sort(so==="bed"?(a,b)=>(a.ward||"").localeCompare(b.ward||"")||(a.bed||"").localeCompare(b.bed||"",undefined,{numeric:true}):(a,b)=>(b.cStart||"").localeCompare(a.cStart||""));
+const cnt={};cases.forEach(c=>{const k=c.ward||"ไม่ระบุวอร์ด";cnt[k]=(cnt[k]||0)+1});
+const done=cases.filter(c=>c.smart).length;
+$("#stats").innerHTML=`<div class="stat"><div><b>${cases.length}</b><span>เคสทั้งหมด</span></div><div><b>${cases.filter(c=>!c.dc).length}</b><span>Active</span></div><div><b>${cases.length-done}</b><span>ยังไม่กรอก SMART</span></div></div>
+<div class="wardbars">${WARDS.map(w=>{const v=cnt[w]||0,mx=Math.max(1,...Object.values(cnt));return`<div><span>${esc(w)}</span><i><em style="width:${v/mx*100}%"></em></i><b>${v}</b></div>`}).join("")}</div>`;
+const act=rows.filter(c=>!c.dc),his=rows.filter(c=>c.dc),aDone=act.filter(c=>c.smart).length;
+$("#list").innerHTML=cases.length?`<div class="sec"><h3><i class="led g"></i>Active Cases</h3><div class="row mute"><span>SMART ${aDone}/${act.length}</span><span class="bar" style="flex:1;max-width:160px"><i style="width:${act.length?aDone/act.length*100:0}%"></i></span>${act.length-aDone?`<span class="tag w">ยังไม่กรอก ${act.length-aDone}</span>`:""}</div>${act.map(card).join("")||`<p class="mute">ไม่มีเคส active</p>`}</div>
+<div class="sec"><h3><i class="led"></i>Discharged</h3>${his.map(card).join("")||`<p class="mute">ยังไม่มีเคสที่ D/C</p>`}</div>`:`<p class="mute">ยังไม่มีเคส กดปุ่ม + มุมขวาล่างเพื่อเริ่ม</p>`}
+$("#list").addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;const d=b.dataset,find=id=>cases.find(c=>c.id==id);
+if(d.s){openSmart=openSmart==d.s?null:+d.s;renderLog()}
+if(d.t){const c=find(d.t);c.smart=!c.smart;save("cases2",cases);renderLog()}
+if(d.dc){const c=find(d.dc);c.dc=!c.dc;if(c.dc&&!c.cEnd)c.cEnd=new Date().toISOString().slice(0,10);save("cases2",cases);renderLog()}
+if(d.e){const c=find(d.e);editId=c.id;openForm(c)}
+if(d.x){if(b.textContent!=="ยืนยันลบ"){b.textContent="ยืนยันลบ";return}cases=cases.filter(c=>c.id!=d.x);save("cases2",cases);renderLog()}
+if(d.cp){const[id,n]=d.cp.split(":"),c=find(id);b.textContent=await copy(val(c,F[+n]))?"คัดลอกแล้ว":"คัดลอกไม่ได้";setTimeout(()=>{b.textContent="คัดลอก"},1200)}
+if(d.all){const c=find(d.all);b.textContent=await copy(F.map(f=>f[1]+": "+val(c,f)).join("\n"))?"คัดลอกแล้ว":"คัดลอกไม่ได้"}});
+$("#q").addEventListener("input",renderLog);$("#qWard").addEventListener("change",renderLog);$("#qSmart").addEventListener("change",renderLog);$("#qSort").addEventListener("change",renderLog);
+$("#csv").addEventListener("click",async()=>{const h=["วอร์ด","เตียง","สถานะ",...F.map(f=>f[1]),"กรอก SMART แล้ว"],cell=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+const t=[h,...cases.map(c=>[c.ward,c.bed,c.dc?"D/C":"Active",...F.map(f=>val(c,f)),c.smart?"ใช่":"ไม่"])].map(r=>r.map(cell).join(",")).join("\n");
+if(await copy(t))say("คัดลอก CSV แล้ว วางใน Google Sheets หรือ Excel ได้เลย");else{$("#impBox").hidden=false;$("#impBox").value=t;say("คัดลอกจากกล่องด้านล่างแทน")}});
+$("#bak").addEventListener("click",async()=>{if(await copy(JSON.stringify(cases)))say("คัดลอกแล้ว นำไปวางเก็บในโน้ตได้");else{$("#impBox").hidden=false;$("#impBox").value=JSON.stringify(cases);say("คัดลอกจากกล่องด้านล่างแทน")}});
+$("#imp").addEventListener("click",()=>{const b=$("#impBox");if(b.hidden){b.hidden=false;b.value="";b.focus();return}
+try{const d=JSON.parse(b.value);if(!Array.isArray(d))throw 0;const ids=new Set(cases.map(c=>c.id));cases=[...cases,...d.filter(c=>c&&c.id&&!ids.has(c.id))];save("cases2",cases);b.hidden=true;renderLog();say("นำเข้าเรียบร้อย")}catch(e){say("รูปแบบข้อมูลไม่ถูกต้อง")}});
+renderLog();
+
+// ---------- Supabase: ล็อกอิน + ลิงก์ (lecture และ ลิงก์รุ่นพี่)
+const SB_URL="https://dhmubazzgbaeinyvznrw.supabase.co";
+const SB_KEY="sb_publishable_fxh4rcT8SwdtDlS2RirOag_Q8wyHh8A";
+const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY):null;
+const safeUrl=u=>/^https?:\/\//.test(u||"")?u:"#";
+
+function renderAcct(){$("#acct").innerHTML=user?`<span>${esc(user.email)}</span><button class="sm" id="logout">ออกจากระบบ</button>`:`<button class="sm" id="openLogin">เข้าสู่ระบบ</button>`}
+function linkForm(kind,ward,r){return`<form class="lform" data-kind="${kind}" data-id="${r?r.id:"new"}"><div class="grid2">
+<div><label>ชื่อ</label><input name="title" required value="${esc(r?r.title:"")}" placeholder="เช่น Acute abdomen"></div>
+<div><label>ลิงก์</label><input name="url" type="url" required value="${esc(r?r.url:"")}" placeholder="https://drive.google.com/..."></div>
+<div><label>วอร์ด</label><select name="ward"><option value="">ทั่วไป</option>${WARDS.map(w=>`<option ${w===(r?r.ward:ward)?"selected":""}>${esc(w)}</option>`).join("")}</select></div>
+</div><div class="row" style="margin-top:10px"><button class="pri sm">บันทึก</button><button type="button" class="sm" data-lcancel>ยกเลิก</button></div></form>`}
+function linkRow(r){if(edit&&edit.id===r.id)return linkForm(r.kind,r.ward,r);
+return`<div class="lrow"><a class="lec" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title)}</a>${user?`<button class="sm" data-led="${r.id}">แก้</button><button class="sm" data-ldel="${r.id}">ลบ</button>`:""}</div>`}
+function linkBlock(kind,title,list,ward){
+const head=`<div class="row" style="justify-content:space-between"><h3>${esc(title)}</h3>${user?`<button class="sm pri" data-ladd="${kind}">+ เพิ่มลิงก์</button>`:""}</div>`;
+if(!user)return head+`<p class="mute">เข้าสู่ระบบเพื่อดูและเพิ่มลิงก์</p><button class="sm" data-login>เข้าสู่ระบบ</button>`;
+const add=edit&&edit.id==="new"&&edit.kind===kind?linkForm(kind,ward,null):"";
+return head+add+(list.length?list.map(linkRow).join(""):`<p class="mute">ยังไม่มีลิงก์ กด “+ เพิ่มลิงก์”</p>`)}
+function renderLec(){if(!$("#lec"))return;$("#lec").innerHTML=linkBlock("lecture","ไฟล์ lecture "+st.ward,rows.filter(r=>r.kind==="lecture"&&r.ward===st.ward),st.ward)}
+function renderSen(){const list=rows.filter(r=>r.kind==="senior").sort((a,b)=>(a.ward||"").localeCompare(b.ward||""));
+$("#sen").innerHTML=linkBlock("senior","ลิงก์ทั้งหมด",list,"")}
+function renderAll(){renderLec();renderSen()}
+async function loadLinks(){if(!sb||!user){rows=[];renderAll();return}
+const {data,error}=await sb.from("links").select("*").order("created_at");
+if(error){say("โหลดลิงก์ไม่ได้: "+error.message);return}rows=data||[];renderAll()}
+
+document.addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;const d=b.dataset;
+if(b.id==="openLogin"||"login" in d){$("#login").hidden=false;$("#lgE").focus()}
+if(b.id==="lgX")$("#login").hidden=true;
+if(b.id==="logout")await sb.auth.signOut();
+if(d.ladd){edit={kind:d.ladd,id:"new"};renderAll()}
+if(d.led){edit={id:d.led};renderAll()}
+if("lcancel" in d){edit=null;renderAll()}
+if(d.ldel){if(b.textContent!=="ยืนยันลบ"){b.textContent="ยืนยันลบ";return}
+const {error}=await sb.from("links").delete().eq("id",d.ldel);if(error)alertMsg(error);else loadLinks()}});
+document.addEventListener("submit",async e=>{const f=e.target.closest(".lform");if(!f)return;e.preventDefault();
+const el=f.elements,v={title:el["title"].value.trim(),url:el["url"].value.trim(),ward:el["ward"].value||null,kind:f.dataset.kind};
+const q=f.dataset.id==="new"?sb.from("links").insert(v):sb.from("links").update({title:v.title,url:v.url,ward:v.ward}).eq("id",f.dataset.id);
+const {error}=await q;if(error){alertMsg(error);return}edit=null;loadLinks()});
+function alertMsg(err){say("ผิดพลาด: "+err.message);console.error(err)}
+
+$("#loginF").addEventListener("submit",async e=>{e.preventDefault();if(!sb)return;$("#lgMsg").textContent="กำลังเข้าสู่ระบบ...";
+const {error}=await sb.auth.signInWithPassword({email:$("#lgE").value.trim(),password:$("#lgP").value});
+$("#lgMsg").textContent=error?(error.message.includes("confirm")?"ยังไม่ได้ยืนยันอีเมล ไปกดลิงก์ในอีเมลก่อน":"อีเมลหรือรหัสผ่านไม่ถูกต้อง"):"";
+if(!error)$("#login").hidden=true});
+$("#lgUp").addEventListener("click",async()=>{if(!$("#loginF").reportValidity())return;$("#lgMsg").textContent="กำลังสมัคร...";
+const {error}=await sb.auth.signUp({email:$("#lgE").value.trim(),password:$("#lgP").value,options:{emailRedirectTo:location.origin+location.pathname}});
+$("#lgMsg").textContent=error?"สมัครไม่ได้: "+error.message:"สมัครแล้ว ไปเปิดอีเมลแล้วกดลิงก์ยืนยัน จากนั้นกลับมาเข้าสู่ระบบ"});
+
+if(sb)sb.auth.onAuthStateChange((ev,session)=>{user=session?session.user:null;renderAcct();setTimeout(loadLinks,0)});
+else{renderAcct();$("#lec").innerHTML=`<p class="mute">เชื่อมต่อฐานข้อมูลไม่ได้ ลองรีเฟรช</p>`}
+renderAll();
+}
+</script>
+</body>
+</html>
