@@ -119,6 +119,7 @@ header .band{position:relative}
 #qzBox summary{cursor:pointer;min-height:44px;display:flex;gap:8px;align-items:center}
 .filebtn{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border-radius:10px;background:var(--blue);color:var(--blueInk);font-size:16px;cursor:pointer}
 .filebtn:focus-within{outline:3px solid var(--acc);outline-offset:2px}
+.mv{display:flex;flex-direction:column;gap:2px;margin-inline-end:4px}.mv button{min-height:22px;padding:0 8px;font-size:11px;line-height:1}
 [hidden]{display:none!important}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
@@ -128,13 +129,17 @@ header .band{position:relative}
 <div id="acct" class="acct"></div>
 <h1>MedMed</h1>
 <p>From someone</p>
-<nav id="nav"><a href="#study">ทบทวน</a><a href="#log">บันทึกเคส</a><a href="#links">ลิงก์สรุปรุ่นพี่</a></nav>
+<nav id="nav"><a href="#log">Case record</a><a href="#lecture">Lecture</a><a href="#quiz">Quiz</a><a href="#links">Link</a></nav>
 </div></header>
 
 <main>
-<section id="v-study" class="band">
-<div class="chips" id="wards"></div>
+<section id="v-lecture" class="band" hidden>
+<div class="chips wardchips"></div>
 <div class="card" id="lec"></div>
+</section>
+
+<section id="v-quiz" class="band" hidden>
+<div class="chips wardchips"></div>
 <div class="chips" id="decks"></div>
 <div class="chips" id="modes">
 <button class="chip" data-m="flash">Flashcard</button>
@@ -151,7 +156,7 @@ header .band{position:relative}
 </section>
 
 <section id="v-log" class="band" hidden>
-<h2>บันทึกเคส</h2><button class="fab" id="addBtn" aria-label="เพิ่มเคส">+</button>
+<h2>Case record</h2><button class="fab" id="addBtn" aria-label="เพิ่มเคส">+</button>
 <div id="migrate"></div>
 <details class="card" id="sheetBox"><summary><b>เชื่อม Google Sheet</b> <span class="mute" id="sheetState"></span></summary>
 <div class="grid2" style="margin-top:10px">
@@ -201,7 +206,7 @@ header .band{position:relative}
 </section>
 
 <section id="v-links" class="band" hidden>
-<h2>ลิงก์สรุปรุ่นพี่</h2>
+<h2>Link</h2>
 <div class="card" id="sen"></div>
 </section>
 </main>
@@ -209,8 +214,8 @@ header .band{position:relative}
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="login" class="modal" hidden><form class="card" id="loginF">
 <h3>เข้าสู่ระบบ MedMed</h3>
-<div style="margin-top:12px"><label for="lgE">Username (a-z, 0-9, . _ - ยาว 3–20 ตัว)</label><input id="lgE" required autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-zA-Z0-9._-]{3,20}"></div>
-<div style="margin-top:12px"><label for="lgP">รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input id="lgP" type="password" required minlength="6" autocomplete="current-password"></div>
+<div style="margin-top:12px"><label for="lgE">Username (a-z, 0-9, . _ - ยาว 3–20 ตัว)</label><input id="lgE" name="username" required autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-zA-Z0-9._-]{3,20}"></div>
+<div style="margin-top:12px"><label for="lgP">รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input id="lgP" name="password" type="password" required minlength="6" autocomplete="current-password"></div>
 <p class="mute" id="lgMsg" role="status"></p>
 <div class="row"><button class="pri" type="submit">เข้าสู่ระบบ</button><button type="button" id="lgUp">สมัครสมาชิก</button><button type="button" id="lgX">ปิด</button></div>
 </form></div>
@@ -240,8 +245,8 @@ const say=t=>{const m=$("#toast");m.textContent=t;m.hidden=false;clearTimeout(sa
 async function copy(t){try{await navigator.clipboard.writeText(t);return true}catch(e){return false}}
 
 // ---------- routing
-const views=["study","log","links"];
-function route(){const h=location.hash.slice(1),v=views.includes(h)?h:"study";
+const views=["log","lecture","quiz","links"];
+function route(){const h=location.hash.slice(1),v=views.includes(h)?h:"log";
 views.forEach(x=>{$("#v-"+x).hidden=x!==v});
 $$("#nav a").forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+v))}
 addEventListener("hashchange",route);route();
@@ -254,7 +259,7 @@ const deckList=()=>DECKS.map((d,n)=>({...d,n})).filter(d=>d.ward===st.ward);
 const deck=()=>DECKS[st.deck];
 const key=q=>q.s+"#"+q.n;
 function renderNav(){
-$("#wards").innerHTML=WARDS.map(w=>`<button class="chip ${w===st.ward?"on":""}" data-w="${esc(w)}">${esc(w)}</button>`).join("");
+const wh=WARDS.map(w=>`<button class="chip ${w===st.ward?"on":""}" data-w="${esc(w)}">${esc(w)}</button>`).join("");$$(".wardchips").forEach(el=>{el.innerHTML=wh});
 const dl=deckList();if(dl.length&&!dl.some(d=>d.n===st.deck))st.deck=dl[0].n;
 $("#decks").innerHTML=dl.map(d=>`<button class="chip ${d.n===st.deck?"on":""}" data-d="${d.n}">${esc(d.title)} <small>${d.items.length}</small></button>`).join("");
 $$("#modes [data-m]").forEach(b=>b.classList.toggle("on",b.dataset.m===st.mode));
@@ -286,7 +291,7 @@ if(st.mode==="match"){
 if(!mt.p.length){s.innerHTML=`<p class="mute">ชุดนี้ไม่มีข้อสั้นพอสำหรับจับคู่</p>`;return}
 if(mt.done.length>=mt.p.length){s.innerHTML=`<h2>จับคู่ครบแล้ว</h2><button class="pri" id="again">รอบใหม่</button>`;return}
 s.innerHTML=`${prog(mt.done.length,mt.p.length)}<p class="mute">แตะคำถามทางซ้าย แล้วแตะคำตอบที่คู่กันทางขวา</p><div class="match"><div>${mt.l.map(([k,x])=>`<button class="ml ${mt.done.includes(k)?"done":""} ${sel===k?"sel":""}" data-k="${k}">${esc(x)}</button>`).join("")}</div><div>${mt.r.map(([k,x])=>`<button class="mr ${mt.done.includes(k)?"done":""}" data-k="${k}">${esc(x)}</button>`).join("")}</div></div>`}}
-$("#wards").addEventListener("click",e=>{const b=e.target.closest("[data-w]");if(!b)return;st.ward=b.dataset.w;renderNav();reset()});
+$$(".wardchips").forEach(el=>el.addEventListener("click",e=>{const b=e.target.closest("[data-w]");if(!b)return;st.ward=b.dataset.w;renderNav();reset()}));
 $("#decks").addEventListener("click",e=>{const b=e.target.closest("[data-d]");if(!b)return;st.deck=+b.dataset.d;renderNav();reset()});
 $("#modes").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
 if(b.dataset.m)st.mode=b.dataset.m;if(b.dataset.f==="rand")st.rand=!st.rand;if(b.dataset.f==="wrong")st.wrongOnly=!st.wrongOnly;renderNav();reset()});
@@ -458,7 +463,7 @@ ${kind==="lecture"?`<div><label>หมวดย่อย (ไม่ใส่ก�
 <div><label>วอร์ด</label><select name="ward"><option value="">ทั่วไป</option>${WARDS.map(w=>`<option ${w===(r?r.ward:ward)?"selected":""}>${esc(w)}</option>`).join("")}</select></div>`:""}
 </div><div class="row" style="margin-top:10px"><button class="pri sm">บันทึก</button><button type="button" class="sm" data-lcancel>ยกเลิก</button></div></form>`}
 function linkRow(r){if(edit&&edit.id===r.id)return linkForm(r.kind,r.ward,r);
-return`<div class="lrow"><a class="lec" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title)}</a>${user?`<button class="sm" data-led="${r.id}">แก้</button><button class="sm" data-ldel="${r.id}">ลบ</button>`:""}</div>`}
+return`<div class="lrow">${r.kind==="senior"&&user?`<span class="mv"><button class="sm" data-lup="${r.id}" aria-label="เลื่อนขึ้น">▲</button><button class="sm" data-ldown="${r.id}" aria-label="เลื่อนลง">▼</button></span>`:""}<a class="lec" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title)}</a>${user?`<button class="sm" data-led="${r.id}">แก้</button><button class="sm" data-ldel="${r.id}">ลบ</button>`:""}</div>`}
 function linkBlock(kind,title,list,ward){
 const head=`<div class="row" style="justify-content:space-between"><h3>${esc(title)}</h3>${user?`<button class="sm pri" data-ladd="${kind}">+ เพิ่มลิงก์</button>`:""}</div>`;
 if(!user)return head+`<p class="mute">เข้าสู่ระบบเพื่อดูและเพิ่มลิงก์</p><button class="sm" data-login>เข้าสู่ระบบ</button>`;
@@ -477,7 +482,7 @@ function renderSen(){const list=rows.filter(r=>r.kind==="senior");
 $("#sen").innerHTML=linkBlock("senior","ลิงก์สรุปรุ่นพี่",list.map(r=>({...r,sub:null})),"")}
 function renderAll(){renderLec();renderSen()}
 async function loadLinks(){if(!sb||!user){rows=[];renderAll();return}
-const {data,error}=await sb.from("links").select("*").order("created_at");
+const {data,error}=await sb.from("links").select("*").order("created_at");if(data)data.sort((a,b)=>(a.pos??1e9)-(b.pos??1e9));
 if(error){say("โหลดลิงก์ไม่ได้: "+error.message);return}rows=data||[];renderAll()}
 
 document.addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;const d=b.dataset;
@@ -485,6 +490,12 @@ if(b.id==="openLogin"||"login" in d){$("#login").hidden=false;$("#lgE").focus()}
 if(b.id==="lgX")$("#login").hidden=true;
 if(b.id==="logout")await sb.auth.signOut();
 if(d.sub!==undefined&&d.subk!==undefined){lecSub[d.subk]=d.sub;renderAll();return}
+if(d.lup||d.ldown){const id=d.lup||d.ldown,list=rows.filter(r=>r.kind==="senior"),i=list.findIndex(r=>r.id===id),j=d.lup?i-1:i+1;
+if(i<0||j<0||j>=list.length)return;[list[i],list[j]]=[list[j],list[i]];
+const ups=list.map((r,n)=>({id:r.id,pos:n,old:r.pos})).filter(u=>u.old!==u.pos);
+list.forEach((r,n)=>{r.pos=n});rows=[...rows.filter(r=>r.kind!=="senior"),...list];renderAll();
+const res=await Promise.all(ups.map(u=>sb.from("links").update({pos:u.pos}).eq("id",u.id)));
+if(res.some(x=>x.error)){say("บันทึกลำดับไม่สำเร็จ: "+res.find(x=>x.error).error.message);loadLinks()}return}
 if(d.ladd){edit={kind:d.ladd,id:"new"};renderAll()}
 if(d.led){edit={id:d.led};renderAll()}
 if("lcancel" in d){edit=null;renderAll()}
@@ -492,6 +503,7 @@ if(d.ldel){if(b.textContent!=="ยืนยันลบ"){b.textContent="ยื�
 const {error}=await sb.from("links").delete().eq("id",d.ldel);if(error)alertMsg(error);else loadLinks()}});
 document.addEventListener("submit",async e=>{const f=e.target.closest(".lform");if(!f)return;e.preventDefault();
 const el=f.elements,v={title:el["title"].value.trim(),url:el["url"].value.trim(),ward:el["ward"]?el["ward"].value||null:null,sub:el["sub"]?el["sub"].value.trim()||null:null,kind:f.dataset.kind};
+if(f.dataset.id==="new"&&v.kind==="senior")v.pos=Math.max(-1,...rows.filter(r=>r.kind==="senior").map(r=>r.pos??-1))+1;
 const q=f.dataset.id==="new"?sb.from("links").insert(v):sb.from("links").update({title:v.title,url:v.url,ward:v.ward,sub:v.sub}).eq("id",f.dataset.id);
 const {error}=await q;if(error){alertMsg(error);return}edit=null;loadLinks()});
 function alertMsg(err){say("ผิดพลาด: "+err.message);console.error(err)}
