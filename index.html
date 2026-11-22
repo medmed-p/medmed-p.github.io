@@ -85,7 +85,7 @@ legend{font-family:Anuphan,sans-serif;font-size:17px;padding:0;margin-bottom:8px
 .ib.ed{background:var(--warn);color:var(--warnI)}.ib.d{background:color-mix(in srgb,var(--ok) 16%,var(--bg));color:var(--ok)}.ib.un{background:color-mix(in srgb,var(--blue) 14%,var(--bg));color:var(--blue);font-size:18px}.ib.lb{background:color-mix(in srgb,var(--blue) 14%,var(--bg));color:var(--blue)}
 .dot{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:var(--acc);border:2px solid var(--bg)}
 @media(max-width:600px){.acts .ib{padding:0 8px;font-size:13px}}
-[hidden]{display:none!important}
+.lec{display:block;padding:12px 0;border-top:1px solid var(--line);color:var(--blue);font-weight:600;text-decoration:none}[hidden]{display:none!important}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
 </head>
@@ -99,6 +99,7 @@ legend{font-family:Anuphan,sans-serif;font-size:17px;padding:0;margin-bottom:8px
 <main>
 <section id="v-study" class="band">
 <div class="chips" id="wards"></div>
+   <div class="card" id="lec"></div>
 <div class="chips" id="decks"></div>
 <div class="chips" id="modes">
 <button class="chip" data-m="flash">Flashcard</button>
@@ -172,6 +173,16 @@ const WARDS=["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency"];
 const SUBS=[...new Set(QX.map(q=>q.s))];
 const DECKS=SUBS.map(s=>({ward:"Surgery",title:s,items:QX.filter(q=>q.s===s)}));
 const LINKS=[];
+   // ===== ไฟล์ lecture: เพิ่มทีละบรรทัด =====
+const LECTURES=[
+  {ward:"Surgery", title:"ตัวอย่าง Acute abdomen", url:"https://drive.google.com/"},
+];
+function renderLec(){
+  const list=LECTURES.filter(l=>l.ward===st.ward);
+  $("#lec").innerHTML=`<h3>ไฟล์ lecture ${esc(st.ward)}</h3>`+
+    (list.length ? list.map(l=>`<a class="lec" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a>`).join("")
+                 : `<p class="mute">ยังไม่มีไฟล์ของวอร์ดนี้</p>`);
+}
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -201,7 +212,7 @@ const dl=deckList();if(dl.length&&!dl.some(d=>d.n===st.deck))st.deck=dl[0].n;
 $("#decks").innerHTML=dl.map(d=>`<button class="chip ${d.n===st.deck?"on":""}" data-d="${d.n}">${esc(d.title)} <small>${d.items.length}</small></button>`).join("");
 $$("#modes [data-m]").forEach(b=>b.classList.toggle("on",b.dataset.m===st.mode));
 $("#modes [data-f=rand]").classList.toggle("on",st.rand);$("#modes [data-f=wrong]").classList.toggle("on",st.wrongOnly);
-$("#modes").hidden=!dl.length;save("st3",st)}
+$("#modes").hidden=!dl.length;save("st3",st);renderLec()}
 function reset(){i=0;flipped=false;score=0;answered=false;sel=null;
 if(!deckList().length){renderStage();return}
 let it=deck().items;if(st.mode==="mcq")it=it.filter(q=>q.o);if(st.wrongOnly)it=it.filter(q=>wrong[key(q)]);
