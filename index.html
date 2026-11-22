@@ -101,7 +101,7 @@ header .band{position:relative}
 .gate .modal{position:static;background:none;padding:clamp(24px,6vw,64px) 16px;place-items:start center}
 .chips.sub{margin:4px 0 10px}.chips.sub .chip{min-height:36px;padding:4px 12px;font-size:14px}
 .gh{font-size:14px;color:var(--mute);margin:14px 0 2px;font-weight:600}
-#rotBox summary{cursor:pointer;min-height:44px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#sheetBox summary,#rotBox summary{cursor:pointer;min-height:44px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .rotr{display:grid;grid-template-columns:7em minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end;padding:8px 0;border-top:1px solid var(--line)}
 @media(max-width:600px){.rotr{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.rotr b{grid-column:1/-1}}
 .dtw{display:flex;gap:6px;align-items:stretch}.dtw .dt{flex:1}
@@ -139,7 +139,12 @@ header .band{position:relative}
 
 <section id="v-log" class="band" hidden>
 <h2>บันทึกเคส</h2><button class="fab" id="addBtn" aria-label="เพิ่มเคส">+</button>
-<p class="note">ตอนนี้ข้อมูลยังเก็บในเครื่องที่ใช้บันทึกเท่านั้น (ทดลองดูหน้าตา) ขั้นถัดไปจะเชื่อม Google Sheet ให้เห็นตรงกันทั้งมือถือ, iPad และคอม</p>
+<div id="migrate"></div>
+<details class="card" id="sheetBox"><summary><b>เชื่อม Google Sheet</b> <span class="mute" id="sheetState"></span></summary>
+<div class="grid2" style="margin-top:10px">
+<div><label for="shUrl">ลิงก์ Apps Script (Web app URL)</label><input id="shUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec"></div>
+<div><label for="shKey">รหัสลับ (ต้องตรงกับในโค้ด Apps Script)</label><input id="shKey" autocomplete="off"></div></div>
+<div class="row" style="margin-top:10px"><button type="button" class="pri" id="shSave">บันทึก</button><button type="button" id="shAll">ส่งเคสทั้งหมดไป Sheet</button></div></details>
 
 <details class="card" id="rotBox"><summary><b>ตั้งวันที่ปฏิบัติของแต่ละวอร์ด</b> <span class="mute">ตั้งครั้งเดียว เลือกวอร์ดในฟอร์มแล้ววันที่ขึ้นเอง</span></summary>
 <div id="rotRows"></div><div class="row" style="margin-top:10px"><button type="button" class="pri" id="rotSave">บันทึกตาราง</button></div></details>
@@ -283,16 +288,14 @@ if(r&&sel!==null){if(+r.dataset.k===sel){mt.done.push(sel);sel=null;renderStage(
 $("#stage").addEventListener("keydown",e=>{if(e.target.id==="fc"&&(e.key==="Enter"||e.key===" ")){e.preventDefault();flipped=!flipped;renderStage();$("#fc").focus()}});
 renderNav();reset();
 
-// ---------- patient log (fields follow the SMART form order)
+// ---------- บันทึกเคส (ช่องเรียงตามฟอร์ม SMART) ข้อมูลเก็บใน Supabase ตาราง cases
 const F=[["subj","รายวิชา",1],["rStart","วันที่เริ่มปฏิบัติ",0,"d"],["rEnd","วันที่สิ้นสุดปฏิบัติ",0,"d"],["cStart","วันที่เริ่มดูแล",0,"d"],["cEnd","วันที่สิ้นสุดการดูแล",0,"d"],
 ["site","สถานปฏิบัติงาน",1],["ptype","ประเภทผู้ป่วย",1],["hn","HN No.",1],["setting","Clinical setting"],["group","กลุ่มโรค",1],["cat","Category"],["cx","Complexity of case"],
 ["dx","การวินิจฉัย",1],["icd","ICD-10",1],["detail","รายละเอียด/ข้อมูล",1],["adv","อาจารย์ที่ปรึกษา"],["logbook","เก็บ log book",0,"c"],["epa","ต้องการรับการประเมิน EPA",0,"c"]];
-const LISTS=["subj","site","setting","group","cat","cx","dx","icd","adv"],ROT=["ward","subj","site","rStart","rEnd"];
+const LISTS=["subj","site","setting","group","cat","cx","dx","icd","adv"];
 $("#ward").innerHTML=WARDS.map(w=>`<option>${esc(w)}</option>`).join("");
 $("#qWard").innerHTML=`<option value="">ทุกวอร์ด</option>`+WARDS.map(w=>`<option>${esc(w)}</option>`).join("");
-let cases=load("cases2",null);
-if(!cases){cases=load("cases",[]).map(c=>({id:c.id,cStart:c.date,hn:c.hn,dx:c.dx,detail:c.note,ptype:"ผู้ป่วยใน",logbook:true}));save("cases2",cases)}
-let editId=null,openSmart=null;
+let cases=[],SET={rotW:{},rot:{}},editId=null,openSmart=null; // SET = การตั้งค่าส่วนตัว (ตาราง settings)
 const th=d=>{if(!d)return"";const[y,m,dd]=d.split("-");return`${dd}/${m}/${+y+543}`};
 // วันที่: เก็บในระบบเป็น yyyy-mm-dd แต่แสดงและพิมพ์เป็น dd/mm/yyyy (พิมพ์ปี พ.ศ. ก็ได้)
 const dmy=d=>{if(!d)return"";const[y,m,dd]=d.split("-");return`${dd}/${m}/${y}`};
@@ -310,28 +313,71 @@ p.addEventListener("change",()=>{t.value=dmy(p.value)})})}
 const val=(c,f)=>f[3]==="d"?th(c[f[0]]):f[3]==="c"?(c[f[0]]?"✓ เลือก":"ไม่เลือก"):(c[f[0]]||"");
 const missing=c=>F.filter(f=>f[2]&&!c[f[0]]).map(f=>f[1]);
 function renderLists(){$("#dls").innerHTML=LISTS.map(k=>`<datalist id="dl-${k}">${[...new Set(cases.map(c=>c[k]).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`).join("")}
+// ===== คุยกับฐานข้อมูล =====
+async function loadCases(){if(!sb||!user){cases=[];renderLog();return}
+const [a,b]=await Promise.all([sb.from("cases").select("id,data").order("created_at"),sb.from("settings").select("data").maybeSingle()]);
+if(a.error){say("โหลดเคสไม่ได้: "+a.error.message);return}
+cases=a.data.map(r=>({...r.data,id:r.id}));
+SET={rotW:{},rot:{},...(b.data?b.data.data:{})};
+renderRot();renderSheet();renderMigrate();renderLog()}
+async function saveCase(c){const {id,...data}=c;
+const res=id?await sb.from("cases").update({data,updated_at:new Date().toISOString()}).eq("id",id).select("id").single()
+            :await sb.from("cases").insert({data}).select("id").single();
+if(res.error){say("บันทึกไม่สำเร็จ: "+res.error.message);return false}
+c.id=res.data.id;sheetSync("upsert",[c]);return true}
+async function delCase(id){const {error}=await sb.from("cases").delete().eq("id",id);
+if(error){say("ลบไม่สำเร็จ: "+error.message);return false}sheetSync("delete",[{id}]);return true}
+async function saveSet(){const {error}=await sb.from("settings").upsert({user_id:user.id,data:SET,updated_at:new Date().toISOString()});
+if(error)say("บันทึกการตั้งค่าไม่ได้: "+error.message)}
+
+// ===== ส่งสำเนาเข้า Google Sheet (ทำงานเมื่อใส่ลิงก์ Apps Script แล้ว) =====
+const HEAD=["id","วอร์ด","เตียง","สถานะ",...F.map(f=>f[1]),"กรอก SMART แล้ว"];
+const sheetRow=c=>[c.id,c.ward||"",c.bed||"",c.dc?"D/C":"Active",...F.map(f=>f[3]==="d"?dmy(c[f[0]]):val(c,f)),c.smart?"ใช่":"ไม่"];
+function sheetSync(action,list){if(!SET.sheetUrl)return Promise.resolve();
+return fetch(SET.sheetUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
+body:JSON.stringify({key:SET.sheetKey||"",action,head:HEAD,rows:list.map(c=>action==="delete"?[c.id]:sheetRow(c))})}).catch(()=>say("ส่งเข้า Google Sheet ไม่สำเร็จ"))}
+function renderSheet(){$("#shUrl").value=SET.sheetUrl||"";$("#shKey").value=SET.sheetKey||"";$("#sheetState").textContent=SET.sheetUrl?"เชื่อมแล้ว":"ยังไม่เชื่อม"}
+$("#shSave").addEventListener("click",async()=>{SET.sheetUrl=$("#shUrl").value.trim();SET.sheetKey=$("#shKey").value.trim();await saveSet();renderSheet();say("บันทึกการเชื่อม Sheet แล้ว")});
+$("#shAll").addEventListener("click",async()=>{if(!SET.sheetUrl){say("ใส่ลิงก์ Apps Script ก่อน");return}await sheetSync("replace",cases);say("ส่งเคสทั้งหมด "+cases.length+" เคสไป Sheet แล้ว")});
+
+// ===== ย้ายเคสเก่าที่เคยเก็บในเครื่องนี้ขึ้นระบบ (ทำครั้งเดียว) =====
+function renderMigrate(){const old=load("cases2",[]);
+$("#migrate").innerHTML=old.length&&!load("migrated",false)?`<div class="note">พบเคส ${old.length} เคสที่เคยบันทึกไว้ในเครื่องนี้ <button class="sm pri" id="migBtn">ย้ายขึ้นระบบ</button> <button class="sm" id="migNo">ไม่ต้องย้าย</button></div>`:""}
+$("#migrate").addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;
+if(b.id==="migNo"){save("migrated",true);renderMigrate();return}
+b.disabled=true;const old=load("cases2",[]);
+const {error}=await sb.from("cases").insert(old.map(({id,...data})=>({data})));
+if(error){say("ย้ายไม่สำเร็จ: "+error.message);b.disabled=false;return}
+const rw=load("rotW",null);if(rw&&!Object.keys(SET.rotW).length){SET.rotW=rw;await saveSet()}
+save("migrated",true);await loadCases();sheetSync("replace",cases);say("ย้ายเคสขึ้นระบบแล้ว")});
+
+// ===== ฟอร์มเพิ่ม/แก้เคส =====
 function openForm(c){$("#f").hidden=false;
-const last=load("rot",{});
-F.forEach(([k,,,t])=>{const el=$("#"+k),v=c?c[k]:(ROT.includes(k)?last[k]:undefined);
+const last=SET.rot||{};
+F.forEach(([k,,,t])=>{const el=$("#"+k),v=c?c[k]:undefined;
 if(t==="c")el.checked=c?!!c[k]:k==="logbook";else if(t==="d")el.value=dmy(v);else if(k==="ptype")el.value=v||"ผู้ป่วยใน";else el.value=v||""});
 $("#ward").value=(c?c.ward:last.ward)||WARDS[0];$("#bed").value=c?c.bed||"":"";if(!c)fillRot();
 if(!c){const n=new Date(),today=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;$("#cStart").value=dmy(today)}
 $("#fTitle").textContent=c?"แก้ไขเคส":"เพิ่มเคส";$("#fSave").textContent=c?"บันทึกการแก้ไข":"บันทึกเคส";
 $("#f").scrollIntoView({behavior:"smooth",block:"start"})}
 // เลือกวอร์ดแล้วเติมรายวิชา สถานที่ และวันที่ปฏิบัติของวอร์ดนั้นให้อัตโนมัติ
-function fillRot(){const r=load("rotW",{})[$("#ward").value]||{};["subj","site","rStart","rEnd"].forEach(k=>{$("#"+k).value=k[0]==="r"?dmy(r[k]):r[k]||""})}
+function fillRot(){const r=SET.rotW[$("#ward").value]||{};["subj","site","rStart","rEnd"].forEach(k=>{$("#"+k).value=k[0]==="r"?dmy(r[k]):r[k]||""})}
 $("#ward").addEventListener("change",fillRot);
-function renderRot(){const rw=load("rotW",{});$("#rotRows").innerHTML=WARDS.map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off" data-rw="${esc(w)}" data-k="rStart" value="${esc(dmy((rw[w]||{}).rStart))}"></label><label>สิ้นสุด<input type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off" data-rw="${esc(w)}" data-k="rEnd" value="${esc(dmy((rw[w]||{}).rEnd))}"></label></div>`).join("");addPickers($("#rotRows"))}
-$("#rotSave").addEventListener("click",()=>{const rw=load("rotW",{});$$("#rotRows input").forEach(i=>{const w=i.dataset.rw;rw[w]={...rw[w],[i.dataset.k]:iso(i.value)}});save("rotW",rw);if(!$("#f").hidden)fillRot();say("บันทึกตารางวอร์ดแล้ว")});
+function renderRot(){const rw=SET.rotW,DT='type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off"';
+$("#rotRows").innerHTML=WARDS.map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input ${DT} data-rw="${esc(w)}" data-k="rStart" value="${esc(dmy((rw[w]||{}).rStart))}"></label><label>สิ้นสุด<input ${DT} data-rw="${esc(w)}" data-k="rEnd" value="${esc(dmy((rw[w]||{}).rEnd))}"></label></div>`).join("");addPickers($("#rotRows"))}
+$("#rotSave").addEventListener("click",async()=>{$$("#rotRows input.dt").forEach(i=>{const w=i.dataset.rw;SET.rotW[w]={...SET.rotW[w],[i.dataset.k]:iso(i.value)}});await saveSet();if(!$("#f").hidden)fillRot();say("บันทึกตารางวอร์ดแล้ว")});
 renderRot();addPickers(document);
 function closeForm(){editId=null;$("#f").hidden=true}
 $("#addBtn").addEventListener("click",()=>{editId=null;openForm(null)});
 $("#fCancel").addEventListener("click",closeForm);
-$("#f").addEventListener("submit",e=>{e.preventDefault();
-const old=cases.find(x=>x.id===editId),c={id:editId||Date.now(),smart:old?old.smart:false};
+$("#f").addEventListener("submit",async e=>{e.preventDefault();const btn=$("#fSave");if(btn.disabled)return;
+const old=cases.find(x=>x.id===editId),c={id:editId||null,smart:old?old.smart:false};
 F.forEach(([k,,,t])=>{const el=$("#"+k);c[k]=t==="c"?el.checked:t==="d"?iso(el.value):el.value.trim()});c.ward=$("#ward").value;c.bed=$("#bed").value.trim();c.dc=old?!!old.dc:false;
-cases=old?cases.map(x=>x.id===editId?c:x):[...cases,c];save("cases2",cases);
-save("rot",{ward:c.ward});const rw=load("rotW",{});rw[c.ward]={...rw[c.ward],...Object.fromEntries(["subj","site","rStart","rEnd"].filter(k=>c[k]).map(k=>[k,c[k]]))};save("rotW",rw);closeForm();renderLog();say("บันทึกแล้ว")});
+btn.disabled=true;btn.textContent="กำลังบันทึก...";const ok=await saveCase(c);btn.disabled=false;
+if(!ok){btn.textContent="ลองบันทึกอีกครั้ง";return}
+cases=old?cases.map(x=>x.id===old.id?c:x):[...cases,c];
+SET.rot={ward:c.ward};SET.rotW[c.ward]={...SET.rotW[c.ward],...Object.fromEntries(["subj","site","rStart","rEnd"].filter(k=>c[k]).map(k=>[k,c[k]]))};saveSet();
+closeForm();renderLog();say("บันทึกแล้ว")});
 function card(c){const m=missing(c);return`<div class="item ${c.dc?"dc":""}">
 <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div>${c.ward?`<span class="wb">${esc(c.ward)}</span>`:""}${c.bed?`<b class="bed">${esc(c.bed)}</b>`:""}
 <div class="dxl">${esc(c.dx||"ยังไม่ใส่การวินิจฉัย")}</div><div class="mute">HN ${esc(c.hn||"-")} · ${esc(c.ptype||"")} · ${esc(dmy(c.cStart))}${c.dc&&c.cEnd?" – "+esc(dmy(c.cEnd)):""}</div></div>
@@ -352,11 +398,11 @@ const act=rows.filter(c=>!c.dc),his=rows.filter(c=>c.dc),aDone=act.filter(c=>c.s
 $("#list").innerHTML=cases.length?`<div class="sec"><h3><i class="led g"></i>Active Cases</h3><div class="row mute"><span>SMART ${aDone}/${act.length}</span><span class="bar" style="flex:1;max-width:160px"><i style="width:${act.length?aDone/act.length*100:0}%"></i></span>${act.length-aDone?`<span class="tag w">ยังไม่กรอก ${act.length-aDone}</span>`:""}</div>${act.map(card).join("")||`<p class="mute">ไม่มีเคส active</p>`}</div>
 <div class="sec"><h3><i class="led"></i>Discharged</h3>${his.map(card).join("")||`<p class="mute">ยังไม่มีเคสที่ D/C</p>`}</div>`:`<p class="mute">ยังไม่มีเคส กดปุ่ม + มุมขวาล่างเพื่อเริ่ม</p>`}
 $("#list").addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;const d=b.dataset,find=id=>cases.find(c=>c.id==id);
-if(d.s){openSmart=openSmart==d.s?null:+d.s;renderLog()}
-if(d.t){const c=find(d.t);c.smart=!c.smart;save("cases2",cases);renderLog()}
-if(d.dc){const c=find(d.dc);c.dc=!c.dc;if(c.dc&&!c.cEnd)c.cEnd=new Date().toISOString().slice(0,10);save("cases2",cases);renderLog()}
+if(d.s){openSmart=openSmart===d.s?null:d.s;renderLog()}
+if(d.t){const c=find(d.t);c.smart=!c.smart;b.disabled=true;if(!await saveCase(c))c.smart=!c.smart;renderLog()}
+if(d.dc){const c=find(d.dc);const was=c.cEnd;c.dc=!c.dc;if(c.dc&&!c.cEnd)c.cEnd=new Date().toISOString().slice(0,10);b.disabled=true;if(!await saveCase(c)){c.dc=!c.dc;c.cEnd=was}renderLog()}
 if(d.e){const c=find(d.e);editId=c.id;openForm(c)}
-if(d.x){if(b.textContent!=="ยืนยันลบ"){b.textContent="ยืนยันลบ";return}cases=cases.filter(c=>c.id!=d.x);save("cases2",cases);renderLog()}
+if(d.x){if(b.textContent!=="ยืนยันลบ"){b.textContent="ยืนยันลบ";return}b.disabled=true;if(await delCase(d.x))cases=cases.filter(c=>c.id!=d.x);renderLog()}
 if(d.cp){const[id,n]=d.cp.split(":"),c=find(id);b.textContent=await copy(val(c,F[+n]))?"คัดลอกแล้ว":"คัดลอกไม่ได้";setTimeout(()=>{b.textContent="คัดลอก"},1200)}
 if(d.all){const c=find(d.all);b.textContent=await copy(F.map(f=>f[1]+": "+val(c,f)).join("\n"))?"คัดลอกแล้ว":"คัดลอกไม่ได้"}});
 $("#q").addEventListener("input",renderLog);$("#qWard").addEventListener("change",renderLog);$("#qSmart").addEventListener("change",renderLog);$("#qSort").addEventListener("change",renderLog);
@@ -364,8 +410,11 @@ $("#csv").addEventListener("click",async()=>{const h=["วอร์ด","เต�
 const t=[h,...cases.map(c=>[c.ward,c.bed,c.dc?"D/C":"Active",...F.map(f=>val(c,f)),c.smart?"ใช่":"ไม่"])].map(r=>r.map(cell).join(",")).join("\n");
 if(await copy(t))say("คัดลอก CSV แล้ว วางใน Google Sheets หรือ Excel ได้เลย");else{$("#impBox").hidden=false;$("#impBox").value=t;say("คัดลอกจากกล่องด้านล่างแทน")}});
 $("#bak").addEventListener("click",async()=>{if(await copy(JSON.stringify(cases)))say("คัดลอกแล้ว นำไปวางเก็บในโน้ตได้");else{$("#impBox").hidden=false;$("#impBox").value=JSON.stringify(cases);say("คัดลอกจากกล่องด้านล่างแทน")}});
-$("#imp").addEventListener("click",()=>{const b=$("#impBox");if(b.hidden){b.hidden=false;b.value="";b.focus();return}
-try{const d=JSON.parse(b.value);if(!Array.isArray(d))throw 0;const ids=new Set(cases.map(c=>c.id));cases=[...cases,...d.filter(c=>c&&c.id&&!ids.has(c.id))];save("cases2",cases);b.hidden=true;renderLog();say("นำเข้าเรียบร้อย")}catch(e){say("รูปแบบข้อมูลไม่ถูกต้อง")}});
+$("#imp").addEventListener("click",async()=>{const b=$("#impBox");if(b.hidden){b.hidden=false;b.value="";b.focus();return}
+let d;try{d=JSON.parse(b.value);if(!Array.isArray(d))throw 0}catch(e){say("รูปแบบข้อมูลไม่ถูกต้อง");return}
+const ids=new Set(cases.map(c=>c.id)),add=d.filter(c=>c&&!ids.has(c.id));
+const {error}=await sb.from("cases").insert(add.map(({id,...data})=>({data})));
+if(error){say("นำเข้าไม่สำเร็จ: "+error.message);return}b.hidden=true;await loadCases();sheetSync("replace",cases);say("นำเข้า "+add.length+" เคสแล้ว")});
 renderLog();
 
 // ---------- Supabase: ล็อกอิน + ลิงก์ (lecture และ ลิงก์รุ่นพี่)
@@ -403,7 +452,7 @@ else if(!list.length)body=`<p class="mute">ยังไม่มีลิงก�
 else{const groups=[...subs,""].map(g=>[g,list.filter(r=>(r.sub||"")===g)]).filter(([,l])=>l.length);
 body=groups.map(([g,l])=>(subs.length?`<h4 class="gh">${esc(g||"อื่นๆ")}</h4>`:"")+l.map(linkRow).join("")).join("")}
 return head+chips+add+body}
-function renderLec(){if(!$("#lec"))return;$("#lec").innerHTML=linkBlock("lecture","Lecture "+st.ward,rows.filter(r=>r.kind==="lecture"&&r.ward===st.ward),st.ward)}
+function renderLec(){if(!$("#lec"))return;$("#lec").innerHTML=linkBlock("lecture","ไฟล์ lecture "+st.ward,rows.filter(r=>r.kind==="lecture"&&r.ward===st.ward),st.ward)}
 function renderSen(){const list=rows.filter(r=>r.kind==="senior");
 $("#sen").innerHTML=linkBlock("senior","ลิงก์สรุปรุ่นพี่",list.map(r=>({...r,sub:null})),"")}
 function renderAll(){renderLec();renderSen()}
@@ -437,7 +486,7 @@ if(error){$("#lgMsg").textContent=error.message.includes("registered")?"Username
 if(data.session){$("#lgMsg").textContent="";$("#login").hidden=true;say("สมัครและเข้าสู่ระบบแล้ว")}
 else $("#lgMsg").textContent="สมัครแล้ว แต่ระบบยังเปิดยืนยันอีเมลอยู่ ต้องปิด Confirm email ใน Supabase ก่อน"});
 
-if(sb)sb.auth.onAuthStateChange((ev,session)=>{user=session?session.user:null;renderAcct();setTimeout(loadLinks,0)});
+if(sb)sb.auth.onAuthStateChange((ev,session)=>{user=session?session.user:null;renderAcct();setTimeout(()=>{loadLinks();loadCases()},0)});
 else{document.body.classList.remove("loading");$("#lgMsg").textContent="เชื่อมต่อระบบไม่ได้ ลองรีเฟรชหรือเช็กอินเทอร์เน็ต";$("#login").hidden=false}
 renderAll();
 }
