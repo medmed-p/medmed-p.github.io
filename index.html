@@ -101,6 +101,9 @@ header .band{position:relative}
 .gate .modal{position:static;background:none;padding:clamp(24px,6vw,64px) 16px;place-items:start center}
 .chips.sub{margin:4px 0 10px}.chips.sub .chip{min-height:36px;padding:4px 12px;font-size:14px}
 .gh{font-size:14px;color:var(--mute);margin:14px 0 2px;font-weight:600}
+#rotBox summary{cursor:pointer;min-height:44px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rotr{display:grid;grid-template-columns:7em minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end;padding:8px 0;border-top:1px solid var(--line)}
+@media(max-width:600px){.rotr{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.rotr b{grid-column:1/-1}}
 [hidden]{display:none!important}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
@@ -133,6 +136,8 @@ header .band{position:relative}
 <h2>บันทึกเคส</h2><button class="fab" id="addBtn" aria-label="เพิ่มเคส">+</button>
 <p class="note">ตอนนี้ข้อมูลยังเก็บในเครื่องที่ใช้บันทึกเท่านั้น (ทดลองดูหน้าตา) ขั้นถัดไปจะเชื่อม Google Sheet ให้เห็นตรงกันทั้งมือถือ, iPad และคอม</p>
 
+<details class="card" id="rotBox"><summary><b>ตั้งวันที่ปฏิบัติของแต่ละวอร์ด</b> <span class="mute">ตั้งครั้งเดียว เลือกวอร์ดในฟอร์มแล้ววันที่ขึ้นเอง</span></summary>
+<div id="rotRows"></div><div class="row" style="margin-top:10px"><button type="button" class="pri" id="rotSave">บันทึกตาราง</button></div></details>
 <form id="f" class="card" hidden>
 <h3 id="fTitle" style="margin-bottom:14px">เพิ่มเคส</h3>
 <fieldset><legend>Rotation <span class="mute">(จำค่าล่าสุดไว้ให้)</span></legend><div class="grid2">
@@ -192,7 +197,7 @@ header .band{position:relative}
 {
 const QX=/*QDATA*/[];
 let user=null,rows=[],edit=null,lecSub={}; // lecSub = หมวดย่อยที่เลือกในแต่ละวอร์ด // ข้อมูลจาก Supabase
-const WARDS=["Sx Sub","Ortho","Rehab","Forensic","Medicine","Emergency"];
+const WARDS=["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency"];
 const SUBS=[...new Set(QX.map(q=>q.s))];
 const DECKS=SUBS.map(s=>({ward:"Surgery",title:s,items:QX.filter(q=>q.s===s)}));
 
@@ -291,10 +296,16 @@ function openForm(c){$("#f").hidden=false;
 const last=load("rot",{});
 F.forEach(([k,,,t])=>{const el=$("#"+k),v=c?c[k]:(ROT.includes(k)?last[k]:undefined);
 if(t==="c")el.checked=c?!!c[k]:k==="logbook";else if(k==="ptype")el.value=v||"ผู้ป่วยใน";else el.value=v||""});
-$("#ward").value=(c?c.ward:last.ward)||WARDS[0];$("#bed").value=c?c.bed||"":"";
+$("#ward").value=(c?c.ward:last.ward)||WARDS[0];$("#bed").value=c?c.bed||"":"";if(!c)fillRot();
 if(!c){const today=new Date().toISOString().slice(0,10);$("#cStart").value=today}
 $("#fTitle").textContent=c?"แก้ไขเคส":"เพิ่มเคส";$("#fSave").textContent=c?"บันทึกการแก้ไข":"บันทึกเคส";
 $("#f").scrollIntoView({behavior:"smooth",block:"start"})}
+// เลือกวอร์ดแล้วเติมรายวิชา สถานที่ และวันที่ปฏิบัติของวอร์ดนั้นให้อัตโนมัติ
+function fillRot(){const r=load("rotW",{})[$("#ward").value]||{};["subj","site","rStart","rEnd"].forEach(k=>{$("#"+k).value=r[k]||""})}
+$("#ward").addEventListener("change",fillRot);
+function renderRot(){const rw=load("rotW",{});$("#rotRows").innerHTML=WARDS.map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input type="date" data-rw="${esc(w)}" data-k="rStart" value="${esc((rw[w]||{}).rStart||"")}"></label><label>สิ้นสุด<input type="date" data-rw="${esc(w)}" data-k="rEnd" value="${esc((rw[w]||{}).rEnd||"")}"></label></div>`).join("")}
+$("#rotSave").addEventListener("click",()=>{const rw=load("rotW",{});$$("#rotRows input").forEach(i=>{const w=i.dataset.rw;rw[w]={...rw[w],[i.dataset.k]:i.value}});save("rotW",rw);if(!$("#f").hidden)fillRot();say("บันทึกตารางวอร์ดแล้ว")});
+renderRot();
 function closeForm(){editId=null;$("#f").hidden=true}
 $("#addBtn").addEventListener("click",()=>{editId=null;openForm(null)});
 $("#fCancel").addEventListener("click",closeForm);
@@ -303,7 +314,7 @@ const old=cases.find(x=>x.id===editId),c={id:editId||Date.now(),smart:old?old.sm
 F.forEach(([k,,,t])=>{const el=$("#"+k);c[k]=t==="c"?el.checked:el.value.trim()});c.ward=$("#ward").value;c.bed=$("#bed").value.trim();c.dc=old?!!old.dc:false;
 if(!c.hn&&!c.dx){say("ใส่ HN หรือการวินิจฉัยอย่างน้อยหนึ่งช่อง");return}
 cases=old?cases.map(x=>x.id===editId?c:x):[...cases,c];save("cases2",cases);
-save("rot",Object.fromEntries(ROT.map(k=>[k,c[k]])));closeForm();renderLog();say("บันทึกแล้ว")});
+save("rot",{ward:c.ward});const rw=load("rotW",{});rw[c.ward]={...rw[c.ward],...Object.fromEntries(["subj","site","rStart","rEnd"].filter(k=>c[k]).map(k=>[k,c[k]]))};save("rotW",rw);closeForm();renderLog();say("บันทึกแล้ว")});
 function card(c){const m=missing(c);return`<div class="item ${c.dc?"dc":""}">
 <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div>${c.ward?`<span class="wb">${esc(c.ward)}</span>`:""}${c.bed?`<b class="bed">${esc(c.bed)}</b>`:""}
 <div class="dxl">${esc(c.dx||"ยังไม่ใส่การวินิจฉัย")}</div><div class="mute">HN ${esc(c.hn||"-")} · ${esc(c.ptype||"")} · ${esc(th(c.cStart))}${c.dc&&c.cEnd?" – "+esc(th(c.cEnd)):""}</div></div>
