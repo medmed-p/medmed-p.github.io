@@ -96,11 +96,14 @@ header .band{position:relative}
 .modal{position:fixed;inset:0;background:rgb(0 0 0/.45);display:grid;place-items:center;padding:16px;z-index:20}.modal .card{width:min(420px,100%);margin:0}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;z-index:30;max-width:90vw}
 @media(max-width:600px){.acct{position:static;justify-content:flex-end;margin-bottom:8px}}
+.loading main,.loading nav,.loading #acct,.loading #login{visibility:hidden}
+.gate main,.gate nav,.gate #acct,.gate .fab{display:none!important}
+.gate .modal{position:static;background:none;padding:clamp(24px,6vw,64px) 16px;place-items:start center}
 [hidden]{display:none!important}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
 </head>
-<body>
+<body class="loading">
 <header><div class="band">
 <div id="acct" class="acct"></div>
 <h1>MedMed</h1>
@@ -175,7 +178,7 @@ header .band{position:relative}
 
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="login" class="modal" hidden><form class="card" id="loginF">
-<h3>เข้าสู่ระบบ</h3>
+<h3>เข้าสู่ระบบ MedMed</h3>
 <div style="margin-top:12px"><label for="lgE">Username (a-z, 0-9, . _ - ยาว 3–20 ตัว)</label><input id="lgE" required autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-zA-Z0-9._-]{3,20}"></div>
 <div style="margin-top:12px"><label for="lgP">รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input id="lgP" type="password" required minlength="6" autocomplete="current-password"></div>
 <p class="mute" id="lgMsg" role="status"></p>
@@ -344,7 +347,8 @@ const toEmail=u=>u.trim().toLowerCase()+"@"+DOMAIN;
 const uname=u=>(u.email||"").split("@")[0];
 const safeUrl=u=>/^https?:\/\//.test(u||"")?u:"#";
 
-function renderAcct(){$("#acct").innerHTML=user?`<span>${esc(uname(user))}</span><button class="sm" id="logout">ออกจากระบบ</button>`:`<button class="sm" id="openLogin">เข้าสู่ระบบ</button>`}
+function renderAcct(){document.body.classList.remove("loading");document.body.classList.toggle("gate",!user);$("#login").hidden=!!user;$("#lgX").hidden=true;
+$("#acct").innerHTML=user?`<span>${esc(uname(user))}</span><button class="sm" id="logout">ออกจากระบบ</button>`:`<button class="sm" id="openLogin">เข้าสู่ระบบ</button>`}
 function linkForm(kind,ward,r){return`<form class="lform" data-kind="${kind}" data-id="${r?r.id:"new"}"><div class="grid2">
 <div><label>ชื่อ</label><input name="title" required value="${esc(r?r.title:"")}" placeholder="เช่น Acute abdomen"></div>
 <div><label>ลิงก์</label><input name="url" type="url" required value="${esc(r?r.url:"")}" placeholder="https://drive.google.com/..."></div>
@@ -391,7 +395,7 @@ if(data.session){$("#lgMsg").textContent="";$("#login").hidden=true;say("สม�
 else $("#lgMsg").textContent="สมัครแล้ว แต่ระบบยังเปิดยืนยันอีเมลอยู่ ต้องปิด Confirm email ใน Supabase ก่อน"});
 
 if(sb)sb.auth.onAuthStateChange((ev,session)=>{user=session?session.user:null;renderAcct();setTimeout(loadLinks,0)});
-else{renderAcct();$("#lec").innerHTML=`<p class="mute">เชื่อมต่อฐานข้อมูลไม่ได้ ลองรีเฟรช</p>`}
+else{document.body.classList.remove("loading");$("#lgMsg").textContent="เชื่อมต่อระบบไม่ได้ ลองรีเฟรชหรือเช็กอินเทอร์เน็ต";$("#login").hidden=false}
 renderAll();
 }
 </script>
