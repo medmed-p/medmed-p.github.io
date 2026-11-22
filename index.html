@@ -124,6 +124,7 @@ header .band{position:relative}
 .rl{flex:none;width:3.6em;font-size:14px;font-weight:600;color:var(--mute)}
 @media(max-width:600px){.lab{flex-direction:column;align-items:stretch;gap:0}.lab .rl{margin-top:6px}}
 .vsep{width:1px;align-self:stretch;background:var(--line);margin:4px 6px}
+.sortsel{width:auto;min-height:38px;padding:4px 10px;font-size:14px}
 [hidden]{display:none!important}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
@@ -483,8 +484,13 @@ ${kind==="lecture"?`<div><label>หมวดย่อย (ไม่ใส่ก�
 </div><div class="row" style="margin-top:10px"><button class="pri sm">บันทึก</button><button type="button" class="sm" data-lcancel>ยกเลิก</button></div></form>`}
 function linkRow(r){if(edit&&edit.id===r.id)return linkForm(r.kind,r.ward,r);
 return`<div class="lrow"><a class="lec" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener">${esc(r.title)}</a>${isAdmin?`<button class="sm" data-led="${r.id}">แก้</button><button class="sm" data-ldel="${r.id}">ลบ</button>`:""}</div>`}
-function linkBlock(kind,title,list,ward){
-const head=`<div class="row" style="justify-content:space-between"><h3>${esc(title)}</h3>${isAdmin?`<button class="sm pri" data-ladd="${kind}">+ เพิ่มลิงก์</button>`:""}</div>`;
+// เรียงไฟล์ lecture ตามที่เลือก (จำค่าไว้ในเครื่อง)
+function lecSorter(){const by=(a,b)=>String(a.created_at).localeCompare(String(b.created_at)),nm=(a,b)=>String(a.title).localeCompare(String(b.title),"th");
+return{old:by,new:(a,b)=>by(b,a),az:nm,za:(a,b)=>nm(b,a)}[load("lecSort","old")]||by}
+document.addEventListener("change",e=>{if(e.target.id!=="lecSort")return;save("lecSort",e.target.value);renderAll()});
+function linkBlock(kind,title,list,ward){if(kind==="lecture")list=[...list].sort(lecSorter());
+const sortSel=kind==="lecture"&&user?`<select id="lecSort" class="sortsel" aria-label="Sort by">${[["az","A→Z"],["za","Z→A"],["new","Latest"],["old","Oldest"]].map(([v,l])=>`<option value="${v}" ${v===load("lecSort","old")?"selected":""}>Sort by: ${l}</option>`).join("")}</select>`:"";
+const head=`<div class="row" style="justify-content:space-between"><h3>${esc(title)}</h3><div class="row">${sortSel}${isAdmin?`<button class="sm pri" data-ladd="${kind}">+ เพิ่มลิงก์</button>`:""}</div></div>`;
 if(!user)return head+`<p class="mute">เข้าสู่ระบบเพื่อดูและเพิ่มลิงก์</p><button class="sm" data-login>เข้าสู่ระบบ</button>`;
 const add=edit&&edit.id==="new"&&edit.kind===kind?linkForm(kind,ward,null):"";
 const subs=subsOf(kind,ward),cur=lecSub[kind+ward]||"*";
