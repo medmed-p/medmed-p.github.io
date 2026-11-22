@@ -134,7 +134,7 @@ header .band{position:relative}
 <div id="acct" class="acct"></div>
 <h1>MedMed</h1>
 <p>From someone</p>
-<nav id="nav"><a href="#log">Case record</a><a href="#lecture">Lecture</a><a href="#quiz">Quiz</a><a href="#links">Link</a></nav>
+<nav id="nav"><a href="#log">Case record</a><a href="#lecture">Lecture</a><a href="#quiz">Quiz</a><a href="#links">Link</a><a href="#admin" hidden>Admin</a></nav>
 </div></header>
 
 <main>
@@ -217,6 +217,16 @@ header .band{position:relative}
 <h2>Link</h2>
 <div class="card" id="sen"></div>
 </section>
+
+<section id="v-admin" class="band" hidden>
+<h2>Admin</h2>
+<div class="card"><h3>สิ่งที่ผู้ใช้ทั่วไปเห็น</h3>
+<p class="mute">ติ๊ก = ผู้ใช้ทั่วไปเห็น · เอาติ๊กออก = ซ่อน (admin เห็นทุกอย่างเสมอ)</p>
+<div id="cfgList"></div>
+<div class="row" style="margin-top:10px"><button class="pri" id="cfgSave">บันทึก</button></div></div>
+<div class="card"><h3>เห็นเฉพาะ admin เสมอ</h3>
+<p class="mute">ปุ่ม + เพิ่มลิงก์ ปุ่มแก้และลบในหน้า Lecture และ Link และกล่องจัดการชุดข้อสอบ</p></div>
+</section>
 </main>
 
 <div id="toast" class="toast" role="status" hidden></div>
@@ -233,6 +243,7 @@ header .band{position:relative}
 <script>
 {
 let quizSets=[]; // ชุดข้อสอบจาก Supabase ตาราง quiz_sets
+let CFG={hide:{}}; // การตั้งค่ากลางจาก admin (ตาราง app_config)
 let user=null,isAdmin=false,rows=[],edit=null,lecSub={}; // isAdmin = แก้ไขเนื้อหากลาง (lecture, ลิงก์, ข้อสอบ) ได้ // lecSub = หมวดย่อยที่เลือกในแต่ละวอร์ด // ข้อมูลจาก Supabase
 const WARDS=["Surgery","Ortho","Rehab","Forensic","Medicine","Emergency"];
 let DECKS=[];
@@ -257,8 +268,13 @@ const say=t=>{const m=$("#toast");m.textContent=t;m.hidden=false;clearTimeout(sa
 async function copy(t){try{await navigator.clipboard.writeText(t);return true}catch(e){return false}}
 
 // ---------- routing
-const views=["log","lecture","quiz","links"];
-function route(){const h=location.hash.slice(1),v=views.includes(h)?h:"log";
+const views=["log","lecture","quiz","links","admin"];
+// ส่วนที่ admin เปิด/ปิดให้ผู้ใช้ทั่วไปเห็นได้
+const TOGGLES=[["tab_log","หน้า Case record"],["tab_lecture","หน้า Lecture"],["tab_quiz","หน้า Quiz"],["tab_links","หน้า Link"],["box_rot","กล่องตั้งวันที่ปฏิบัติ (ใน Case record)"],["box_sheet","กล่องเชื่อม Google Sheet (ใน Case record)"]];
+const shown=k=>isAdmin||!(CFG.hide&&CFG.hide[k]);
+const allowed=v=>v==="admin"?isAdmin:shown("tab_"+v);
+function route(){const h=location.hash.slice(1),v=views.includes(h)&&allowed(h)?h:(views.find(allowed)||"log");
+$$("#nav a").forEach(a=>{a.hidden=!allowed(a.getAttribute("href").slice(1))});$("#rotBox").hidden=!shown("box_rot");$("#sheetBox").hidden=!shown("box_sheet");
 views.forEach(x=>{$("#v-"+x).hidden=x!==v});
 $$("#nav a").forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+v))}
 addEventListener("hashchange",route);route();
@@ -576,7 +592,16 @@ $("#qzList").addEventListener("click",async e=>{const b=e.target.closest("[data-
 if(b.textContent!=="ยืนยันลบ"){b.textContent="ยืนยันลบ";return}
 const {error}=await sb.from("quiz_sets").delete().eq("id",b.dataset.qdel);if(error){say("ลบไม่สำเร็จ: "+error.message);return}loadQuiz()});
 
-if(sb)sb.auth.onAuthStateChange((ev,session)=>{user=session?session.user:null;renderAcct();setTimeout(async()=>{isAdmin=false;if(user){const r=await sb.rpc("is_admin");isAdmin=r.data===true}renderQuizList();loadLinks();loadCases();loadQuiz()},0)});
+// ---------- การตั้งค่ากลาง (admin เปิด/ปิดสิ่งที่ผู้ใช้ทั่วไปเห็น)
+async function loadConfig(){if(!sb||!user){CFG={hide:{}};return}
+const {data}=await sb.from("app_config").select("data").eq("id",1).maybeSingle();
+CFG={hide:{},...(data?data.data:{})};renderCfg()}
+function renderCfg(){$("#cfgList").innerHTML=TOGGLES.map(([k,l])=>`<label class="ck"><input type="checkbox" data-cfg="${k}" ${CFG.hide[k]?"":"checked"}> ${esc(l)}</label>`).join("")}
+$("#cfgSave").addEventListener("click",async()=>{const hide={};$$("#cfgList [data-cfg]").forEach(c=>{if(!c.checked)hide[c.dataset.cfg]=true});
+CFG={...CFG,hide};const {error}=await sb.from("app_config").upsert({id:1,data:CFG,updated_at:new Date().toISOString()});
+if(error){say("บันทึกไม่สำเร็จ: "+error.message);return}say("บันทึกแล้ว ผู้ใช้ทั่วไปจะเห็นตามนี้ตอนเปิดเว็บครั้งถัดไป")});
+
+if(sb)sb.auth.onAuthStateChange((ev,session)=>{user=session?session.user:null;renderAcct();setTimeout(async()=>{isAdmin=false;if(user){const r=await sb.rpc("is_admin");isAdmin=r.data===true}await loadConfig();route();renderQuizList();loadLinks();loadCases();loadQuiz()},0)});
 else{document.body.classList.remove("loading");$("#lgMsg").textContent="เชื่อมต่อระบบไม่ได้ ลองรีเฟรชหรือเช็กอินเทอร์เน็ต";$("#login").hidden=false}
 renderAll();
 }
