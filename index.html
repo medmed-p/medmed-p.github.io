@@ -104,6 +104,11 @@ header .band{position:relative}
 #rotBox summary{cursor:pointer;min-height:44px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .rotr{display:grid;grid-template-columns:7em minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end;padding:8px 0;border-top:1px solid var(--line)}
 @media(max-width:600px){.rotr{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.rotr b{grid-column:1/-1}}
+.dtw{display:flex;gap:6px;align-items:stretch}.dtw .dt{flex:1}
+.calb{position:relative;flex:none;width:44px;min-height:44px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--blue)}
+.calb input{position:absolute;inset:0;width:100%;height:100%;min-height:0;opacity:0;padding:0;border:0;cursor:pointer}
+.calb input::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;cursor:pointer}
+.calb:focus-within{outline:3px solid var(--acc);outline-offset:2px}
 [hidden]{display:none!important}
 @media(max-width:600px){.match{gap:6px}.match button{font-size:14px;padding:8px}.smart div{grid-template-columns:minmax(0,1fr) auto}.smart span{grid-column:1/-1}}
 </style>
@@ -294,6 +299,14 @@ const dmy=d=>{if(!d)return"";const[y,m,dd]=d.split("-");return`${dd}/${m}/${y}`}
 const iso=t=>{const m=(t||"").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(!m)return"";let[,d,mo,y]=m.map(Number);if(y>2400)y-=543;const dt=new Date(Date.UTC(y,mo-1,d));return dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d?dt.toISOString().slice(0,10):""};
 document.addEventListener("input",e=>{const el=e.target;if(!el.classList||!el.classList.contains("dt"))return;const v=el.value.replace(/\D/g,"").slice(0,8);el.value=v.length>4?v.slice(0,2)+"/"+v.slice(2,4)+"/"+v.slice(4):v.length>2?v.slice(0,2)+"/"+v.slice(2):v});
 document.addEventListener("change",e=>{const el=e.target;if(el.classList&&el.classList.contains("dt")&&el.value&&!iso(el.value)){say("วันที่ไม่ถูกต้อง ใช้รูปแบบ dd/mm/yyyy");el.value=""}});
+// ปุ่มปฏิทินข้างช่องวันที่: ช่อง date ของเบราว์เซอร์ซ่อนทับปุ่มไว้ แตะแล้วปฏิทินเด้ง เลือกแล้วแปลงเป็น dd/mm/yyyy
+const CAL='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+function addPickers(root){root.querySelectorAll("input.dt").forEach(t=>{if(t.parentNode.classList.contains("dtw"))return;
+const w=document.createElement("span");w.className="dtw";t.parentNode.insertBefore(w,t);w.appendChild(t);
+const b=document.createElement("span");b.className="calb";b.innerHTML=CAL+'<input type="date" tabindex="-1" aria-label="เลือกจากปฏิทิน">';w.appendChild(b);
+const p=b.querySelector("input");
+const sync=()=>{p.value=iso(t.value)||""};p.addEventListener("focus",sync);p.addEventListener("pointerdown",sync);
+p.addEventListener("change",()=>{t.value=dmy(p.value)})})}
 const val=(c,f)=>f[3]==="d"?th(c[f[0]]):f[3]==="c"?(c[f[0]]?"✓ เลือก":"ไม่เลือก"):(c[f[0]]||"");
 const missing=c=>F.filter(f=>f[2]&&!c[f[0]]).map(f=>f[1]);
 function renderLists(){$("#dls").innerHTML=LISTS.map(k=>`<datalist id="dl-${k}">${[...new Set(cases.map(c=>c[k]).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`).join("")}
@@ -308,9 +321,9 @@ $("#f").scrollIntoView({behavior:"smooth",block:"start"})}
 // เลือกวอร์ดแล้วเติมรายวิชา สถานที่ และวันที่ปฏิบัติของวอร์ดนั้นให้อัตโนมัติ
 function fillRot(){const r=load("rotW",{})[$("#ward").value]||{};["subj","site","rStart","rEnd"].forEach(k=>{$("#"+k).value=k[0]==="r"?dmy(r[k]):r[k]||""})}
 $("#ward").addEventListener("change",fillRot);
-function renderRot(){const rw=load("rotW",{});$("#rotRows").innerHTML=WARDS.map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off" data-rw="${esc(w)}" data-k="rStart" value="${esc(dmy((rw[w]||{}).rStart))}"></label><label>สิ้นสุด<input type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off" data-rw="${esc(w)}" data-k="rEnd" value="${esc(dmy((rw[w]||{}).rEnd))}"></label></div>`).join("")}
+function renderRot(){const rw=load("rotW",{});$("#rotRows").innerHTML=WARDS.map(w=>`<div class="rotr"><b>${esc(w)}</b><label>เริ่ม<input type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off" data-rw="${esc(w)}" data-k="rStart" value="${esc(dmy((rw[w]||{}).rStart))}"></label><label>สิ้นสุด<input type="text" class="dt" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" autocomplete="off" data-rw="${esc(w)}" data-k="rEnd" value="${esc(dmy((rw[w]||{}).rEnd))}"></label></div>`).join("");addPickers($("#rotRows"))}
 $("#rotSave").addEventListener("click",()=>{const rw=load("rotW",{});$$("#rotRows input").forEach(i=>{const w=i.dataset.rw;rw[w]={...rw[w],[i.dataset.k]:iso(i.value)}});save("rotW",rw);if(!$("#f").hidden)fillRot();say("บันทึกตารางวอร์ดแล้ว")});
-renderRot();
+renderRot();addPickers(document);
 function closeForm(){editId=null;$("#f").hidden=true}
 $("#addBtn").addEventListener("click",()=>{editId=null;openForm(null)});
 $("#fCancel").addEventListener("click",closeForm);
