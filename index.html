@@ -241,7 +241,7 @@ header .band{position:relative}
 <div class="row" style="margin-top:10px"><button class="pri" id="optSave">บันทึกตัวเลือก</button></div></div>
 <div class="card"><h3>อาจารย์ที่ปรึกษาแต่ละวอร์ด</h3>
 <p class="mute">บรรทัดละ 1 ชื่อ พิมพ์ให้ตรงกับใน SMART ตอนเพิ่มเคส ช่องอาจารย์จะแสดงเฉพาะรายชื่อของวอร์ดที่เลือก</p>
-<details style="margin-top:8px"><summary><b>รายชื่ออาจารย์ทั้งหมดจาก SMART</b> <span class="mute">ไว้คัดลอกไปใส่แต่ละวอร์ด</span></summary><textarea id="advAll" rows="6" readonly></textarea></details>
+<details style="margin-top:8px"><summary><b>รายชื่ออาจารย์ทั้งหมดจาก SMART</b> <span class="mute">ไว้คัดลอกไปใส่แต่ละวอร์ด</span></summary><textarea id="advAll" rows="6"></textarea></details>
 <div class="grid2" id="advBoxes" style="margin-top:8px"></div>
 <div class="row" style="margin-top:10px"><button class="pri" id="advSave">บันทึกรายชื่ออาจารย์</button></div></div>
 <div class="card"><h3>เห็นเฉพาะ admin เสมอ</h3>
@@ -671,7 +671,7 @@ async function saveCfg(msg){const {error}=await sb.from("app_config").upsert({id
 if(error){say("บันทึกไม่สำเร็จ: "+error.message);return false}renderCfg();applyWards();if(!$("#f").hidden)setupForm();say(msg);return true}
 const optLines=v=>[...new Set(v.split(/\n/).map(x=>x.trim()).filter(Boolean))];
 $("#optSave").addEventListener("click",()=>{const o={};OPT_FIELDS.forEach(([k])=>{o[k]=optLines($("#opt-"+k).value)});CFG={...CFG,opts:o};saveCfg("บันทึกตัวเลือกแล้ว")});
-$("#advSave").addEventListener("click",()=>{const a={};$$("#advBoxes [data-advw]").forEach(t=>{a[t.dataset.advw]=optLines(t.value)});CFG={...CFG,advisers:a};saveCfg("บันทึกรายชื่ออาจารย์แล้ว")});
+$("#advSave").addEventListener("click",()=>{const a={};$$("#advBoxes [data-advw]").forEach(t=>{a[t.dataset.advw]=optLines(t.value)});CFG={...CFG,advisers:a,advAll:optLines($("#advAll").value)};saveCfg("บันทึกรายชื่ออาจารย์แล้ว")});
 // อ่านข้อมูลฟอร์ม SMART ที่คัดลอกจาก Console แล้วเติมตัวเลือกให้ (ยังไม่บันทึกจนกด "บันทึกตัวเลือก")
 $("#optImpBtn").addEventListener("click",()=>{let j;try{j=JSON.parse($("#optImp").value)}catch(e){$("#optImpMsg").textContent="อ่านไม่ได้: ต้องเป็นข้อความที่คัดลอกจาก Console";return}
 const fs=(j.fields||j.controls||[]).filter(f=>f.opts&&f.opts.length),tx=t=>String(t).replace(/\s+/g," ").trim();
